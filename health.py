@@ -6,26 +6,40 @@ import argparse
 
 # TODO Print mix and max values?
 
-def extract_values(cd: Path, sign_name: str) -> list[tuple]:
+def extract_value(file: str, sign_name: str) -> tuple|None:
+    with open(file) as f:
+        condition = json.load(f)
+        category_info = condition['category']
+        assert isinstance(category_info, list)
+        for ci in category_info:
+            if ci['text'] == "Vital Signs":
+                if condition['code']['text'] == sign_name:
+                    t = sign_name
+                    d = condition['effectiveDateTime']
+                    # It turns out that blood pressure, which has two values, like 144/100,
+                    # has a slightly different format. First find "component", then each has
+                    # its own "valueQuantity"
+                    if "valueQuantity" in condition:
+                        w = condition["valueQuantity"]["value"]
+                        u = condition["valueQuantity"]["unit"]
+                        return t, d, (w, u)
+
+                    elif "component" in condition:
+                        sub_values = []
+                        for component in condition["component"]:
+                            val = component["valueQuantity"]["value"]
+                            unit = component["valueQuantity"]["unit"]
+                            sub_values.append((val, unit))
+                        return t, d, sub_values
+    return None
+
+def extract_all_values(cd: Path, sign_name: str) -> list[tuple]:
     path = cd / "Observation*.json"
     values = []
     for p in glob.glob(str(path)):
-        with open(p) as f:
-            condition = json.load(f)
-            # if 'category' not in condition:
-            #     print("X")
-            # if 'text' not in condition['category']:
-            #     print("Y")
-            category_info = condition['category']
-            assert isinstance(category_info, list)
-            for ci in category_info:
-                if ci['text'] == "Vital Signs":
-                    if condition['code']['text'] == sign_name:
-                        t = sign_name
-                        d = condition['effectiveDateTime']
-                        w = condition["valueQuantity"]["value"]
-                        u = condition["valueQuantity"]["unit"]
-                        values.append((t, d, w, u))
+        value = extract_value(p, sign_name)
+        if value is not None:
+            values.append(value)
     values = sorted(values, key=lambda x: x[1])
     return values
 
@@ -48,9 +62,14 @@ def print_conditions(cd: Path):
         print(c)
 
 def print_value(w: tuple):
-    print(F"{w[0]:10}: {w[1]} - {w[2]:6.1f} {w[3]}", end="")
-    if w[3] == "kg":
-        print(f": {w[2] * 2.2:6.1f}")
+    print(F"{w[0]:10}: {w[1]} - ", end="")
+    values = w[2]
+    if not isinstance(values, list):
+        values = [values]
+    for value in values:
+        print(F" {value[0]:6.1f} {value[1]},", end="")
+        # if w[2] == "kg":
+        #     print(f": {w[1] * 2.2:6.1f}")
     print()
 
 def print_values(ws: list[tuple]) -> NoReturn:
@@ -79,7 +98,7 @@ def go():
         print_conditions(condition_path)
 
     if vital:
-        ws = extract_values(condition_path, vital)
+        ws = extract_all_values(condition_path, vital)
         print_values(ws)
 
 
