@@ -49,6 +49,7 @@ def print_conditions(cd: Path):
 
 def print_weights(ws: list[tuple]) -> NoReturn:
     for w in ws:
+        assert w[3] == "kg"
         print(F"{w[0]:10}: {w[1]} - {w[2]:6.1f} {w[3]}: {w[2]*2.2:6.1f}")
 
 
