@@ -8,7 +8,7 @@ I am not medically trained, and have no documentation on the file format. This c
 ## Why?
 My initial goal is to graph my weight and blood-pressure over time. Kaiser's app allows you to graph test results, but I have not found a way to graph vital sign recording over time. You can look at each record, one at a time, but who wants to do that?
 
-# How to get your data
+# How to Get Your Kaiser Medical Record data
 
 1. What I did was go to the Apple Health app on my iPhone. 
 2. Selected my profile picture to open my profile. 
@@ -20,7 +20,9 @@ My initial goal is to graph my weight and blood-pressure over time. Kaiser's app
 
 All of the above should be possible without an iPhone, but that's how I did it.
 
-I'm using Kaiser Northern California. I believe this will work with other Kaiser groups, but I have not tested it.
+I'm using Kaiser Northern California. I believe this will work with other Kaiser groups, but I have not tested it. 
+
+I believe this may be a [standard format](https://www.healthit.gov/faq/what-are-differences-between-electronic-medical-records-electronic-health-records-and-personal), so this code may work with more than just Kaiser.
 
 # Running the Code
 All that is currently implemented is fetchig "Conditions" and printing weight records. 
