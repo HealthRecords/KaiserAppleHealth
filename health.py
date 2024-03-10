@@ -2,14 +2,12 @@ import glob
 import json
 from pathlib import Path
 from typing import NoReturn
+import argparse
 
 def extract_weights(cd: Path) -> list[tuple]:
     path = cd / "Observation*.json"
     weights = []
     for p in glob.glob(str(path)):
-        pp = Path(p)
-        if pp.name == "Observation-12AC2756-E39F-4C58-8B35-6B4C11E6DE97.json":
-            print("found")
         with open(p) as f:
             condition = json.load(f)
             # if 'category' not in condition:
@@ -53,12 +51,27 @@ def print_weights(ws: list[tuple]) -> NoReturn:
         print(F"{w[0]:10}: {w[1]} - {w[2]:6.1f} {w[3]}: {w[2]*2.2:6.1f}")
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description='Explore Kaiser Health Data')
+
+    # Add verbose argument
+    parser.add_argument('-v', '--vital', action='store_true', help='Print a vital statistic, like weight.')
+    parser.add_argument('-c', '--condition', action='store_true', help='Print all active conditions.')
+    # Parse the command-line arguments
+    args = parser.parse_args()
+    return args.vital, args.condition
+
 def go():
+    vital, condition = parse_args()
     base = Path("export/apple_health_export")
     condition_path = base / "clinical-records"
-    print_conditions(condition_path)
-    ws = extract_weights(condition_path)
-    print_weights(ws)
+
+    if condition:
+        print_conditions(condition_path)
+
+    if vital:
+        ws = extract_weights(condition_path)
+        print_weights(ws)
 
 
 if __name__ == "__main__":
