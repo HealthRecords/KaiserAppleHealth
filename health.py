@@ -8,10 +8,46 @@ from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import csv
+from dataclasses import dataclass
 
-# TODO Get correct names systolic and diastolic from original data for charts
 # TODO Do we want to have an option to process multiple or all stats in one run?
 # TODO Used NamedTuple
+
+@dataclass
+class ValueQuantity:
+    """
+    Represents a "valueQuantity", from an Observation. It provides a value, a unit and optionally a name.
+
+    We are combining two objects from the documentation.
+
+    For Observations with a single value, the Observation contains one valueQuantity object.
+    For Observations with multiple values, there is a "component", which contains a valueObject and "code" with a name
+     for each individual value.
+    a name field (single valued fields use the category text).
+
+    We ignore system, and the duplicate name.
+
+    "valueQuantity" : {
+        "code" : "mg/dL",
+        "value" : 0.90,
+        "system" : "http://unitsofmeasure.org",
+        "unit" : "mg/dL"
+  },
+    """
+    value: float
+    unit: str
+    name: str
+
+@dataclass
+class Observation:
+    """
+    This holds data from one file, which records an observation, such as height or blood pressure.
+    """
+    name: str
+    date: str
+    data: list[tuple]
+
+
 
 def convert_units(v, u):
     # TODO this should be optional, but we are parsing US data.
@@ -40,7 +76,8 @@ def extract_value(file: str, sign_name: str) -> tuple | None:
                         v = condition["valueQuantity"]["value"]
                         u = condition["valueQuantity"]["unit"]
                         v, u = convert_units(v, u)
-                        return t, d, (v, u)
+                        vq = ValueQuantity(v, u, sign_name)
+                        return t, d, vq
 
                     elif "component" in condition:
                         sub_values = []
@@ -49,8 +86,9 @@ def extract_value(file: str, sign_name: str) -> tuple | None:
                             unit = component["valueQuantity"]["unit"]
                             text = component["code"]["text"]
                             val, unit = convert_units(val, unit)
+                            vq = ValueQuantity(val, unit, text)
 
-                            sub_values.append((val, unit, text))
+                            sub_values.append(vq)
                         return t, d, sub_values
     return None
 
@@ -130,8 +168,9 @@ def print_value_csv(w: tuple):
     if not isinstance(values, list):
         values = [values]
     for value in values:
-        fields.append(value[0])
-        fields.append(value[1])
+        fields.append(value.value)
+        fields.append(value.unit)
+        fields.append(value.name)
     print_csv(fields)
 
 def print_values(ws: list[tuple], csv_format: bool) -> NoReturn:
@@ -249,13 +288,15 @@ def do_vital(condition_path: Path, vital: str, after: str, print_data: bool, vpl
         if isinstance(ws[0][2], list):
             # The only multivalued field I have seen so far is blood pressure, with two values.
             assert len(ws[0][2]) == 2
-            values = [observation[2][0][0] for observation in ws]
-            values2 = [observation[2][1][0] for observation in ws]
-            subname0 = ws[0][2][0][2]
-            subname1 = ws[0][2][1][2]
+            values = [observation[2][0].value for observation in ws]
+            values2 = [observation[2][1].value for observation in ws]
+            subname0 = ws[0][2][0].name
+            subname1 = ws[0][2][1].name
         else:
-            values = [observation[2][0] for observation in ws]
+            values = [observation[2].value for observation in ws]
             values2 = None
+            subname0 = vital
+            subname1 = vital
         plot(dates, values, values2, vital, subname0, subname1)
 
 
