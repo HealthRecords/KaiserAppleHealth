@@ -128,7 +128,7 @@ def print_csv(data: Iterable):
     print(output.getvalue(), end="")
 
 
-def print_conditions(cd: Path, csv_format: bool, match:str) -> NoReturn:
+def print_conditions(cd: Path, csv_format: bool, match: str) -> NoReturn:
     path = cd / match
     conditions = []
     for p in glob.glob(str(path)):
