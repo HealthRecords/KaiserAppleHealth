@@ -3,6 +3,9 @@ import json
 from pathlib import Path
 from typing import NoReturn, Iterable
 import argparse
+from datetime import datetime, timedelta
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 
 # TODO Print mix and max values?
 
@@ -121,7 +124,8 @@ def list_vitals(observation_files: Iterable[str]) -> NoReturn:
         print("\t", stat)
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Explore Kaiser Health Data')
+    parser = argparse.ArgumentParser(description='Explore Kaiser Health Data',
+                                     epilog='Example usage: python health.py -s Weight, --plot-vitals, --print')
 
     # Add verbose argument
     parser.add_argument('-s', '--stat', type=str,
@@ -131,19 +135,18 @@ def parse_args():
             'use the -l to get a list of stats found in your data.')
     parser.add_argument('-c', '--condition', action='store_true',
                         help='Print all active conditions.')
-    parser.add_argument('-l', '--list-vitals', action='store_true',
+    parser.add_argument('-l', '--list-vitals', action=argparse.BooleanOptionalAction,
                         help='List names of all vital signs that were found.')
-    parser.add_argument('-p', '--plot-vitals', action='store_true',
-                        help='Plots the vital statistic selected with -v.')
-    parser.add_argument('--print', action=argparse.BooleanOptionalAction)
+    parser.add_argument('--plot',  action=argparse.BooleanOptionalAction,
+                        help='Plots the vital statistic selected with --stat.')
+    parser.add_argument('--print', action=argparse.BooleanOptionalAction,
+                        help='Prints the vital statistic selected with --stat.')
+    parser.add_argument('--after', type=str,
+                        help='YYYY-MM-DD format date. Only include dates after this date when using --stat.')
     args = parser.parse_args()
-    return args.stat, args.condition, args.list_vitals, args.plot_vitals, args.print
+    return args.stat, args.condition, args.list_vitals, args.plot, args.print, args.after
 
 def plot(dates, values):
-    from datetime import datetime, timedelta
-    import matplotlib.pyplot as plt
-    import matplotlib.dates as mdates
-
     # Assuming 'dates' and 'values' are defined
     dates = [datetime.strptime(date, '%Y-%m-%dT%H:%M:%SZ') for date in dates]
 
@@ -186,17 +189,24 @@ def plot(dates, values):
 
 
 def go():
-    vital, condition, lv, vplot, print_data = parse_args()
+    vital, condition, lv, vplot, print_data, after = parse_args()
     base = Path("export/apple_health_export")
     condition_path = base / "clinical-records"
+
+    if not condition and not vital:
+        print("Please select either -s, -c or -l to get some output.")
+        return
 
     if condition:
         print_conditions(condition_path)
 
     if vital:
         ws = extract_all_values(yield_observations(condition_path), vital)
+        if after:
+            ad = datetime.strptime(after, '%Y-%m-%d')
+            ws = [w for w in ws if ad < datetime.strptime(w[1], '%Y-%m-%dT%H:%M:%SZ')]
         if not print_data and not vplot:
-            print("You need to select at least one of -s or --print")
+            print("You need to select at least one of -s or --print with --stat")
             return
         if print_data:
             print_values(ws)
