@@ -11,6 +11,7 @@ import csv
 
 # TODO Make chart work for blood pressure, which has two Y values.
 # TODO Do we want to have an option to process multiple or all stats in one run?
+# TODO Used NamedTuple
 
 def convert_units(v, u):
     # TODO this should be optional, but we are parsing US data.
@@ -216,6 +217,36 @@ def plot(dates, values):
 
     plt.show()
 
+def do_vital(condition_path: Path, vital: str, after: str, print_data: bool, vplot: bool, csv: bool) -> NoReturn:
+    ws = extract_all_values(yield_observations(condition_path), vital)
+    if after:
+        ad = datetime.strptime(after, '%Y-%m-%d')
+        ws = [w for w in ws if ad < datetime.strptime(w[1], '%Y-%m-%dT%H:%M:%SZ')]
+    if not print_data and not vplot:
+        print("You need to select at least one of --plot or --print with --stat")
+        return
+    if not ws:
+        print(F"No data was found for stat {vital} ")
+        if after:
+            print(F"In the range of values after {after}")
+        print(F"You can use the -l argument to see what stats are in your data.")
+        return
+
+    if print_data:
+        print_values(ws, csv)
+
+    if vplot:
+        # We can't handle things like "Blood Pressure" here, yet.
+        # How would you do a 2D graph of date vs systolic/diastolic. Two lines, one graph?
+        for observation in ws:
+            if isinstance(observation[2], list):
+                print("Cannot graph vitals with more than one value, like Blood Pressure.")
+                return
+
+        dates = [observation[1] for observation in ws]
+        values = [observation[2][0] for observation in ws]
+        plot(dates, values)
+
 
 def go():
     vital, condition, lv, vplot, print_data, after, csv = parse_args()
@@ -230,27 +261,7 @@ def go():
         print_conditions(condition_path, csv)
 
     if vital:
-        ws = extract_all_values(yield_observations(condition_path), vital)
-        if after:
-            ad = datetime.strptime(after, '%Y-%m-%d')
-            ws = [w for w in ws if ad < datetime.strptime(w[1], '%Y-%m-%dT%H:%M:%SZ')]
-        if not print_data and not vplot:
-            print("You need to select at least one of --plot or --print with --stat")
-            return
-        if print_data:
-            print_values(ws, csv)
-
-        if vplot:
-            # We can't handle things like "Blood Pressure" here, yet.
-            # How would you do a 2D graph of date vs systolic/diastolic. Two lines, one graph?
-            for observation in ws:
-                if isinstance(observation[2], list):
-                    print("Cannot graph vitals with more than one value, like Blood Pressure.")
-                    return
-
-            dates = [observation[1] for observation in ws]
-            values = [observation[2][0] for observation in ws]
-            plot(dates, values)
+        do_vital(condition_path, vital, after, print_data, vplot, csv)
 
     if lv:
         list_vitals(observation_files=yield_observations(condition_path))
