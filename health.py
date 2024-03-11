@@ -1,7 +1,7 @@
 import glob
 import json
 from pathlib import Path
-from typing import NoReturn, Generator, Iterable
+from typing import NoReturn, Iterable
 import argparse
 
 # TODO Print mix and max values?
@@ -38,11 +38,11 @@ def yield_observations(cd: Path) -> Iterable[str]:
     for p in glob.glob(str(path)):
         yield p
 
-def filter_category(observation_files: Iterable[str], code_text: str) -> Iterable[dict]:
+def filter_category(observation_files: Iterable[str], category: str) -> Iterable[dict]:
     """
-    Filters observations, only passing on those with a code['text'] = code_text
+    Filters observations, only passing on those with a category['text'] = category
     :param observation_files: Source for file names
-    :param code_text: The name of the category to keep, like 'Vital Signs'
+    :param category: The name of the category to keep, like 'Vital Signs'
     :return:
     """
     for file in observation_files:
@@ -51,7 +51,7 @@ def filter_category(observation_files: Iterable[str], code_text: str) -> Iterabl
             category_info = observation['category']
             assert isinstance(category_info, list)
             for ci in category_info:
-                if ci['text'] == "Vital Signs":
+                if ci['text'] == category:
                     yield observation
 
 def extract_all_values(observations: Iterable[str], sign_name: str) -> list[tuple]:
@@ -92,7 +92,7 @@ def print_value(w: tuple):
         #     print(f": {w[1] * 2.2:6.1f}")
     print()
 
-def print_values(ws: list[tuple]) -> NoReturn:
+def print_values(ws: list[tuple]):
     for w in ws:
         print_value(w)
 
@@ -104,7 +104,7 @@ def list_vitals(observation_files: Iterable[str]) -> NoReturn:
         code_name = observation['code']['text']
         vitals.add(code_name)
     print("Vital Statistics found in records.")
-    for stat in vitals:
+    for stat in sorted(vitals):
         print("\t", stat)
 
 def parse_args():
@@ -115,14 +115,64 @@ def parse_args():
         help='Print a vital statistic, like weight. Name has to match EXACTLY, ' +
             'Weight" is not "weight".\nSome examples:\n' +
             'SpO2, Weight, "Blood Pressure" (quotes are required, if the name has spaces in it).')
-    parser.add_argument('-c', '--condition', action='store_true', help='Print all active conditions.')
-    parser.add_argument('-l', '--list-vitals', action='store_true', help='Print all active conditions.')
+    parser.add_argument('-c', '--condition', action='store_true',
+                        help='Print all active conditions.')
+    parser.add_argument('-l', '--list-vitals', action='store_true',
+                        help='List names of all vital signs that were found.')
+    parser.add_argument('-p', '--plot-vitals', action='store_true',
+                        help='Plots the vital statistic selected with -v.')
     # Parse the command-line arguments
     args = parser.parse_args()
-    return args.vital, args.condition, args.list_vitals
+    return args.vital, args.condition, args.list_vitals, args.plot_vitals
+
+def plot(dates, values):
+    from datetime import datetime, timedelta
+    import matplotlib.pyplot as plt
+    import matplotlib.dates as mdates
+
+    # Assuming 'dates' and 'values' are defined
+    dates = [datetime.strptime(date, '%Y-%m-%dT%H:%M:%SZ') for date in dates]
+
+    # Find the date range
+    min_date = min(dates)
+    max_date = max(dates)
+    num_intervals = 6
+
+    date_range = max_date - min_date
+    interval_length = date_range / num_intervals
+
+    # Determine and set the locator and formatter directly
+    if interval_length < timedelta(days=70):  # Less than ~10 weeks
+        locator = mdates.WeekdayLocator(interval=max(1, int(interval_length.days / 7)))
+        date_format = mdates.DateFormatter('%Y-%m-%d')
+    elif interval_length < timedelta(days=365):
+        locator = mdates.MonthLocator()
+        date_format = mdates.DateFormatter('%Y-%m')
+    else:
+        locator = mdates.YearLocator()  # MonthLocator does not need 'interval' parameter
+        date_format = mdates.DateFormatter('%Y')
+
+    # Create the plot
+    plt.figure(figsize=(10, 6))
+    plt.plot(dates, values, marker='o')
+
+    # Set the locator and formatter
+    plt.gca().xaxis.set_major_locator(locator)
+    plt.gca().xaxis.set_major_formatter(date_format)
+
+    plt.gcf().autofmt_xdate()  # Rotate dates for better spacing
+
+    plt.title('Time-based Data Plot with Intervals')
+    plt.xlabel('Date')
+    plt.ylabel('Value')
+    plt.grid(True)
+    plt.tight_layout()
+
+    plt.show()
+
 
 def go():
-    vital, condition, lv = parse_args()
+    vital, condition, lv, vplot = parse_args()
     base = Path("export/apple_health_export")
     condition_path = base / "clinical-records"
 
@@ -133,8 +183,21 @@ def go():
         ws = extract_all_values(yield_observations(condition_path), vital)
         print_values(ws)
 
+        if vplot:
+            # We can't handle things like "Blood Pressure" here, yet.
+            # How would you do a 2D graph of date vs systolic/diastolic. Two lines, one graph?
+            for observation in ws:
+                if isinstance(observation[2], list):
+                    print("Cannot graph vitals with more than one value, like Blood Pressure.")
+                    return
+
+            dates = [observation[1] for observation in ws]
+            values = [observation[2][0] for observation in ws]
+            plot(dates, values)
+
     if lv:
         list_vitals(observation_files=yield_observations(condition_path))
+
 
 if __name__ == "__main__":
     go()
