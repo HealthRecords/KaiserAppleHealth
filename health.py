@@ -11,7 +11,6 @@ import csv
 from dataclasses import dataclass
 
 # TODO Do we want to have an option to process multiple or all stats in one run?
-# TODO Used NamedTuple
 
 @dataclass
 class ValueQuantity:
@@ -45,7 +44,7 @@ class Observation:
     """
     name: str
     date: str
-    data: list[tuple]
+    data: list[ValueQuantity]
 
 
 def convert_units(v, u):
@@ -58,7 +57,7 @@ def convert_units(v, u):
         u = "Fah"
     return v, u
 
-def extract_value(file: str, sign_name: str) -> tuple | None:
+def extract_value(file: str, sign_name: str) -> Observation | None:
     with open(file) as f:
         condition = json.load(f)
         category_info = condition['category']
@@ -76,7 +75,7 @@ def extract_value(file: str, sign_name: str) -> tuple | None:
                         u = condition["valueQuantity"]["unit"]
                         v, u = convert_units(v, u)
                         vq = ValueQuantity(v, u, sign_name)
-                        return t, d, vq
+                        return Observation(t, d, [vq])
 
                     elif "component" in condition:
                         sub_values = []
@@ -88,7 +87,7 @@ def extract_value(file: str, sign_name: str) -> tuple | None:
                             vq = ValueQuantity(val, unit, text)
 
                             sub_values.append(vq)
-                        return t, d, sub_values
+                        return Observation(t, d, sub_values)
     return None
 
 def yield_observations(cd: Path) -> Iterable[str]:
@@ -112,13 +111,13 @@ def filter_category(observation_files: Iterable[str], category: str) -> Iterable
                 if ci['text'] == category:
                     yield observation
 
-def extract_all_values(observations: Iterable[str], sign_name: str) -> list[tuple]:
+def extract_all_values(observations: Iterable[str], sign_name: str) -> list[Observation]:
     values = []
     for p in observations:
         value = extract_value(p, sign_name)
         if value is not None:
             values.append(value)
-    values = sorted(values, key=lambda x: x[1])
+    values = sorted(values, key=lambda x: x.date)
     return values
 
 def print_csv(data: Iterable):
@@ -142,7 +141,7 @@ def print_conditions(cd: Path, csv_format: bool) -> NoReturn:
                  condition['code']['text'],
                  )
             )
-    cs = sorted(conditions, key=lambda x: x[1])
+    cs = sorted(conditions, key=lambda x: x.date)
     for condition in cs:
         if csv_format:
             print_csv(condition)
@@ -150,29 +149,23 @@ def print_conditions(cd: Path, csv_format: bool) -> NoReturn:
             # Almost the same as csv, but the csv version escapes special characters, if there are any.
             print(condition)
 
-def print_value(w: tuple):
-    print(F"{w[0]:10}: {w[1]} - ", end="")
-    values = w[2]
-    if not isinstance(values, list):
-        values = [values]
+def print_value(w: Observation):
+    print(F"{w.name:10}: {w.date} - ", end="")
+    values = w.data
     for value in values:
-        print(F" {value[0]:6.1f} {value[1]},", end="")
-        # if w[2] == "kg":
-        #     print(f": {w[1] * 2.2:6.1f}")
+        print(F" {value.value:6.1f} {value.unit},", end="")
     print()
 
-def print_value_csv(w: tuple):
-    fields = [w[0], w[1]]
-    values = w[2]
-    if not isinstance(values, list):
-        values = [values]
+def print_value_csv(w: Observation):
+    fields = [w.name, w.date]
+    values = w.data
     for value in values:
         fields.append(value.value)
         fields.append(value.unit)
         fields.append(value.name)
     print_csv(fields)
 
-def print_values(ws: list[tuple], csv_format: bool) -> NoReturn:
+def print_values(ws: list[Observation], csv_format: bool) -> NoReturn:
     for w in ws:
         if csv_format:
             print_value_csv(w)
@@ -215,7 +208,7 @@ def parse_args():
     args = parser.parse_args()
     return args.stat, args.condition, args.list_vitals, args.plot, args.print, args.after, args.csv
 
-def plot(dates, values: list[tuple[float, str]], values2: list[tuple[float, str]], graph_subject, data_name_1, data_name_2) -> None:
+def plot(dates, values: list[float], values2: list[float], graph_subject, data_name_1, data_name_2) -> None:
     label0 = data_name_1 if data_name_1 else ""
     label1 = data_name_2 if data_name_2 else ""
 
@@ -265,7 +258,7 @@ def do_vital(condition_path: Path, vital: str, after: str, print_data: bool, vpl
     ws = extract_all_values(yield_observations(condition_path), vital)
     if after:
         ad = datetime.strptime(after, '%Y-%m-%d')
-        ws = [w for w in ws if ad < datetime.strptime(w[1], '%Y-%m-%dT%H:%M:%SZ')]
+        ws = [w for w in ws if ad < datetime.strptime(w.date, '%Y-%m-%dT%H:%M:%SZ')]
     if not print_data and not vplot:
         print("You need to select at least one of --plot or --print with --stat")
         return
@@ -280,23 +273,24 @@ def do_vital(condition_path: Path, vital: str, after: str, print_data: bool, vpl
         print_values(ws, csv_format)
 
     if vplot:
-
-        dates = [observation[1] for observation in ws]
+        dates = [observation.date for observation in ws]
         # Assume lists are homogenous (all have same number and type of fields)
         first = ws[0]
         # Assume all valueQuantities are either list, or not list.
-        if isinstance(first[2], list):
+        if len(first.data) == 2:
             # The only multivalued field I have seen so far is blood pressure, with two values.
-            assert len(first[2]) == 2
-            values_1 = [observation[2][0].value for observation in ws]
-            values_2 = [observation[2][1].value for observation in ws]
-            data_name_1 = first[2][0].name
-            data_name_2 = first[2][1].name
-        else:
-            values_1 = [observation[2].value for observation in ws]
+            values_1 = [observation.data[0].value for observation in ws]
+            values_2 = [observation.data[1].value for observation in ws]
+            data_name_1 = first.data[0].name
+            data_name_2 = first.data[1].name
+        elif len(first.data) == 1:
+            values_1 = [observation.data[0].value for observation in ws]
             values_2 = None
             data_name_1 = vital
             data_name_2 = None
+        else:
+            raise ValueError(f"Unexpected number of data values. {len(first.data)}.")
+
         plot(dates, values_1, values_2, vital, data_name_1, data_name_2)
 
 
