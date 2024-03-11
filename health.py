@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import csv
 
-# TODO Make chart work for blood pressure, which has two Y values.
+# TODO Get correct names systolic and diastolic from original data for charts
 # TODO Do we want to have an option to process multiple or all stats in one run?
 # TODO Used NamedTuple
 
@@ -90,7 +90,7 @@ def print_csv(data: Iterable):
     print(output.getvalue(), end="")
 
 
-def print_conditions(cd: Path, csv: bool) -> NoReturn:
+def print_conditions(cd: Path, csv_format: bool) -> NoReturn:
     path = cd / "Condition*.json"
     conditions = []
     for p in glob.glob(str(path)):
@@ -106,7 +106,7 @@ def print_conditions(cd: Path, csv: bool) -> NoReturn:
             )
     cs = sorted(conditions, key=lambda x: x[1])
     for condition in cs:
-        if csv:
+        if csv_format:
             print_csv(condition)
         else:
             # Almost the same as csv, but the csv version escapes special characters, if there are any.
@@ -133,9 +133,9 @@ def print_value_csv(w: tuple):
         fields.append(value[1])
     print_csv(fields)
 
-def print_values(ws: list[tuple], csv: bool) -> NoReturn:
+def print_values(ws: list[tuple], csv_format: bool) -> NoReturn:
     for w in ws:
-        if csv:
+        if csv_format:
             print_value_csv(w)
         else:
             print_value(w)
@@ -221,7 +221,7 @@ def plot(dates, values: list[tuple[float, str]], values2: list[tuple[float, str]
 
     plt.show()
 
-def do_vital(condition_path: Path, vital: str, after: str, print_data: bool, vplot: bool, csv: bool) -> NoReturn:
+def do_vital(condition_path: Path, vital: str, after: str, print_data: bool, vplot: bool, csv_format: bool) -> NoReturn:
     ws = extract_all_values(yield_observations(condition_path), vital)
     if after:
         ad = datetime.strptime(after, '%Y-%m-%d')
@@ -237,23 +237,23 @@ def do_vital(condition_path: Path, vital: str, after: str, print_data: bool, vpl
         return
 
     if print_data:
-        print_values(ws, csv)
+        print_values(ws, csv_format)
 
     if vplot:
 
         dates = [observation[1] for observation in ws]
         # Assume all stats are either list, or not list.
         if isinstance(ws[0][2], list):
-            values = [observation[2][0][0] for observation in ws]
-            values2= [observation[2][1][0] for observation in ws]
+            values  = [observation[2][0][0] for observation in ws]
+            values2 = [observation[2][1][0] for observation in ws]
         else:
-            values = [observation[2][0] for observation in ws]
-            values2= None
+            values  = [observation[2][0] for observation in ws]
+            values2 = None
         plot(dates, values, values2, vital)
 
 
 def go():
-    vital, condition, lv, vplot, print_data, after, csv = parse_args()
+    vital, condition, lv, vplot, print_data, after, csv_format = parse_args()
     base = Path("export/apple_health_export")
     condition_path = base / "clinical-records"
 
@@ -262,10 +262,10 @@ def go():
         return
 
     if condition:
-        print_conditions(condition_path, csv)
+        print_conditions(condition_path, csv_format)
 
     if vital:
-        do_vital(condition_path, vital, after, print_data, vplot, csv)
+        do_vital(condition_path, vital, after, print_data, vplot, csv_format)
 
     if lv:
         list_vitals(observation_files=yield_observations(condition_path))
