@@ -6,7 +6,7 @@ This repository shows how I am exploring my downloaded Kaiser medical record dat
 I am not medically trained, and have no documentation on the file format. This code is NOT for making medical decisions. There may be missing data and actual errors. I recommend discussing anything interesting you find with your doctor.
 
 ## Why?
-My initial goal is to graph my weight and blood-pressure over time. Kaiser's app allows you to graph test results, but I have not found a way to graph vital sign recording over time. You can look at each record, one at a time, but who wants to do that?
+My initial goal is to graph my weight and blood-pressure over time. Kaiser's app allows you to graph test results, but I have not found a way to graph vital signs recorded over time. You can look at each record, one at a time, but who wants to do that?
 
 # How to Get Your Kaiser Medical Record data
 
@@ -22,7 +22,7 @@ All of the above should be possible without an iPhone, but that's how I did it.
 
 I'm using Kaiser Northern California. I believe this will work with other Kaiser groups, but I have not tested it. 
 
-I believe this may be a [standard format](https://www.healthit.gov/faq/what-are-differences-between-electronic-medical-records-electronic-health-records-and-personal), so this code may work with more than just Kaiser.
+I believe this data format may be a [standard format](https://www.healthit.gov/faq/what-are-differences-between-electronic-medical-records-electronic-health-records-and-personal), so this code may work with more than just Kaiser.
 
 # Running the Code
 It assumes your zip is expanded to the 'export' directory, in the current directory.
