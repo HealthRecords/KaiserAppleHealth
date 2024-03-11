@@ -9,7 +9,8 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import csv
 
-# TODO Print data as csv or jsonl? CSV. Done for conditions. Need to do for vitals.
+# TODO Make chart work for blood pressure, which has two Y values.
+# TODO Do we want to have an option to process multiple or all stats in one run?
 
 def convert_units(v, u):
     # TODO this should be optional, but we are parsing US data.
@@ -81,7 +82,14 @@ def extract_all_values(observations: Iterable[str], sign_name: str) -> list[tupl
     values = sorted(values, key=lambda x: x[1])
     return values
 
-def print_conditions(cd: Path):
+def print_csv(data: Iterable):
+    output = StringIO()
+    wr = csv.writer(output, quoting=csv.QUOTE_ALL)
+    wr.writerow(data)
+    print(output.getvalue(), end="")
+
+
+def print_conditions(cd: Path, csv: bool) -> NoReturn:
     path = cd / "Condition*.json"
     conditions = []
     for p in glob.glob(str(path)):
@@ -97,10 +105,11 @@ def print_conditions(cd: Path):
             )
     cs = sorted(conditions, key=lambda x: x[1])
     for condition in cs:
-        output = StringIO()
-        wr = csv.writer(output, quoting=csv.QUOTE_ALL)
-        wr.writerow(condition)
-        print(output.getvalue(), end="")
+        if csv:
+            print_csv(condition)
+        else:
+            # Almost the same as csv, but the csv version escapes special characters, if there are any.
+            print(condition)
 
 def print_value(w: tuple):
     print(F"{w[0]:10}: {w[1]} - ", end="")
@@ -113,9 +122,22 @@ def print_value(w: tuple):
         #     print(f": {w[1] * 2.2:6.1f}")
     print()
 
-def print_values(ws: list[tuple]):
+def print_value_csv(w: tuple):
+    fields = [w[0], w[1]]
+    values = w[2]
+    if not isinstance(values, list):
+        values = [values]
+    for value in values:
+        fields.append(value[0])
+        fields.append(value[1])
+    print_csv(fields)
+
+def print_values(ws: list[tuple], csv: bool) -> NoReturn:
     for w in ws:
-        print_value(w)
+        if csv:
+            print_value_csv(w)
+        else:
+            print_value(w)
 
 
 def list_vitals(observation_files: Iterable[str]) -> NoReturn:
@@ -140,6 +162,8 @@ def parse_args():
             'use the -l to get a list of stats found in your data.')
     parser.add_argument('-c', '--condition', action='store_true',
                         help='Print all active conditions.')
+    parser.add_argument('--csv', action='store_true',
+                        help='Format printed output as csv')
     parser.add_argument('-l', '--list-vitals', action=argparse.BooleanOptionalAction,
                         help='List names of all vital signs that were found.')
     parser.add_argument('--plot',  action=argparse.BooleanOptionalAction,
@@ -149,7 +173,7 @@ def parse_args():
     parser.add_argument('--after', type=str,
                         help='YYYY-MM-DD format date. Only include dates after this date when using --stat.')
     args = parser.parse_args()
-    return args.stat, args.condition, args.list_vitals, args.plot, args.print, args.after
+    return args.stat, args.condition, args.list_vitals, args.plot, args.print, args.after, args.csv
 
 def plot(dates, values):
     # Assuming 'dates' and 'values' are defined
@@ -194,7 +218,7 @@ def plot(dates, values):
 
 
 def go():
-    vital, condition, lv, vplot, print_data, after = parse_args()
+    vital, condition, lv, vplot, print_data, after, csv = parse_args()
     base = Path("export/apple_health_export")
     condition_path = base / "clinical-records"
 
@@ -203,7 +227,7 @@ def go():
         return
 
     if condition:
-        print_conditions(condition_path)
+        print_conditions(condition_path, csv)
 
     if vital:
         ws = extract_all_values(yield_observations(condition_path), vital)
@@ -214,7 +238,7 @@ def go():
             print("You need to select at least one of --plot or --print with --stat")
             return
         if print_data:
-            print_values(ws)
+            print_values(ws, csv)
 
         if vplot:
             # We can't handle things like "Blood Pressure" here, yet.
