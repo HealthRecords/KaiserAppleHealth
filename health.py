@@ -176,7 +176,9 @@ def parse_args():
     args = parser.parse_args()
     return args.stat, args.condition, args.list_vitals, args.plot, args.print, args.after, args.csv
 
-def plot(dates, values):
+def plot(dates, values: list[tuple[float, str]], values2: list[tuple[float, str]], label) -> None:
+    label2 = label
+    # values2 = [v[0]/2 for v in values]
     # Assuming 'dates' and 'values' are defined
     dates = [datetime.strptime(date, '%Y-%m-%dT%H:%M:%SZ') for date in dates]
 
@@ -201,7 +203,8 @@ def plot(dates, values):
 
     # Create the plot
     plt.figure(figsize=(10, 6))
-    plt.plot(dates, values, marker='o')
+    plt.plot(dates, values, marker='o', label=label)
+    plt.plot(dates, values2, marker='x', linestyle='--', label=label2)
 
     # Set the locator and formatter
     plt.gca().xaxis.set_major_locator(locator)
@@ -209,9 +212,9 @@ def plot(dates, values):
 
     plt.gcf().autofmt_xdate()  # Rotate dates for better spacing
 
-    plt.title('Time-based Data Plot with Intervals')
+    plt.title(F'Plot of {label} vs Date') 
     plt.xlabel('Date')
-    plt.ylabel('Value')
+    plt.ylabel(label)
     plt.grid(True)
     plt.tight_layout()
 
@@ -236,16 +239,15 @@ def do_vital(condition_path: Path, vital: str, after: str, print_data: bool, vpl
         print_values(ws, csv)
 
     if vplot:
-        # We can't handle things like "Blood Pressure" here, yet.
-        # How would you do a 2D graph of date vs systolic/diastolic. Two lines, one graph?
-        for observation in ws:
-            if isinstance(observation[2], list):
-                print("Cannot graph vitals with more than one value, like Blood Pressure.")
-                return
 
         dates = [observation[1] for observation in ws]
-        values = [observation[2][0] for observation in ws]
-        plot(dates, values)
+        # Assume all stats are either list, or not list.
+        if isinstance(ws[0][2], list):
+            values = [observation[2][0][0] for observation in ws]
+            values2= [observation[2][1][0] for observation in ws]
+        else:
+            values = [observation[2][0] for observation in ws]
+        plot(dates, values, values2, vital)
 
 
 def go():
