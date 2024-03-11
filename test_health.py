@@ -1,4 +1,3 @@
-from pathlib import Path
 from unittest import TestCase
 from health import extract_value, list_vitals
 
