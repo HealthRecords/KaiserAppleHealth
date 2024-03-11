@@ -173,12 +173,16 @@ def print_values(ws: list[Observation], csv_format: bool) -> NoReturn:
             print_value(w)
 
 
-def list_vitals(observation_files: Iterable[str]) -> NoReturn:
+def list_vitals(observation_files: Iterable[str]) -> set[str]:
     vitals = set()
     signs_found = filter_category(observation_files, "Vital Signs")
     for observation in signs_found:
         code_name = observation['code']['text']
         vitals.add(code_name)
+    return vitals
+
+def print_vitals(observation_files: Iterable[str]) -> NoReturn:
+    vitals = list_vitals(observation_files)
     print("Vital Statistics found in records.")
     for stat in sorted(vitals):
         print("\t", stat)
@@ -310,7 +314,7 @@ def go():
         do_vital(condition_path, vital, after, print_data, vplot, csv_format)
 
     if lv:
-        list_vitals(observation_files=yield_observations(condition_path))
+        print_vitals(observation_files=yield_observations(condition_path))
 
 
 if __name__ == "__main__":

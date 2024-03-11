@@ -1,6 +1,6 @@
 from pathlib import Path
 from unittest import TestCase
-from health import extract_value
+from health import extract_value, list_vitals
 
 
 class Test(TestCase):
@@ -16,3 +16,8 @@ class Test(TestCase):
         self.assertEqual(observation.data[1].unit, 'mm[Hg]')
         self.assertEqual(observation.data[1].name, 'Diastolic blood pressure')
 
+    def test_list_available(self):
+        test_file = "Observation-test-bp.json"
+        vitals = list_vitals([test_file])
+        self.assertEqual(1, len(vitals))
+        self.assertTrue("Blood Pressure" in vitals)
