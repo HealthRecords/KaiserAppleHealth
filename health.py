@@ -124,19 +124,20 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Explore Kaiser Health Data')
 
     # Add verbose argument
-    parser.add_argument('-v', '--vital', type=str,
+    parser.add_argument('-s', '--stat', type=str,
         help='Print a vital statistic, like weight. Name has to match EXACTLY, ' +
             'Weight" is not "weight".\nSome examples:\n' +
-            'SpO2, Weight, "Blood Pressure" (quotes are required, if the name has spaces in it).')
+            'SpO2, Weight, "Blood Pressure" (quotes are required, if the name has spaces in it).' +
+            'use the -l to get a list of stats found in your data.')
     parser.add_argument('-c', '--condition', action='store_true',
                         help='Print all active conditions.')
     parser.add_argument('-l', '--list-vitals', action='store_true',
                         help='List names of all vital signs that were found.')
     parser.add_argument('-p', '--plot-vitals', action='store_true',
                         help='Plots the vital statistic selected with -v.')
-    # Parse the command-line arguments
+    parser.add_argument('--print', action=argparse.BooleanOptionalAction)
     args = parser.parse_args()
-    return args.vital, args.condition, args.list_vitals, args.plot_vitals
+    return args.stat, args.condition, args.list_vitals, args.plot_vitals, args.print
 
 def plot(dates, values):
     from datetime import datetime, timedelta
@@ -185,7 +186,7 @@ def plot(dates, values):
 
 
 def go():
-    vital, condition, lv, vplot = parse_args()
+    vital, condition, lv, vplot, print_data = parse_args()
     base = Path("export/apple_health_export")
     condition_path = base / "clinical-records"
 
@@ -194,7 +195,11 @@ def go():
 
     if vital:
         ws = extract_all_values(yield_observations(condition_path), vital)
-        print_values(ws)
+        if not print_data and not vplot:
+            print("You need to select at least one of -s or --print")
+            return
+        if print_data:
+            print_values(ws)
 
         if vplot:
             # We can't handle things like "Blood Pressure" here, yet.
