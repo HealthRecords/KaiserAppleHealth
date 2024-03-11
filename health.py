@@ -1,13 +1,15 @@
 import glob
 import json
+from io import StringIO
 from pathlib import Path
 from typing import NoReturn, Iterable
 import argparse
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import csv
 
-# TODO Print mix and max values?
+# TODO Print data as csv or jsonl? CSV. Done for conditions. Need to do for vitals.
 
 def convert_units(v, u):
     # TODO this should be optional, but we are parsing US data.
@@ -86,7 +88,7 @@ def print_conditions(cd: Path):
         with open(p) as f:
             condition = json.load(f)
             conditions.append(
-                ("Condition:",
+                ("Condition",
                  condition['recordedDate'],
                  condition['clinicalStatus']['text'],
                  condition['verificationStatus']['text'],
@@ -94,8 +96,11 @@ def print_conditions(cd: Path):
                  )
             )
     cs = sorted(conditions, key=lambda x: x[1])
-    for c in cs:
-        print(c)
+    for condition in cs:
+        output = StringIO()
+        wr = csv.writer(output, quoting=csv.QUOTE_ALL)
+        wr.writerow(condition)
+        print(output.getvalue(), end="")
 
 def print_value(w: tuple):
     print(F"{w[0]:10}: {w[1]} - ", end="")
