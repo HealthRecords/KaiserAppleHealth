@@ -6,6 +6,16 @@ import argparse
 
 # TODO Print mix and max values?
 
+def convert_units(v, u):
+    # TODO this should be optional, but we are parsing US data.
+    if u == "kg":
+        v = v * 2.2
+        u = "lb"
+    elif u == "Cel":
+        v = v * 9.0 / 5.0 + 32.0
+        u = "Fah"
+    return v, u
+
 def extract_value(file: str, sign_name: str) -> tuple | None:
     with open(file) as f:
         condition = json.load(f)
@@ -20,15 +30,18 @@ def extract_value(file: str, sign_name: str) -> tuple | None:
                     # has a slightly different format. First find "component", then each has
                     # its own "valueQuantity"
                     if "valueQuantity" in condition:
-                        w = condition["valueQuantity"]["value"]
+                        v = condition["valueQuantity"]["value"]
                         u = condition["valueQuantity"]["unit"]
-                        return t, d, (w, u)
+                        v, u = convert_units(v, u)
+                        return t, d, (v, u)
 
                     elif "component" in condition:
                         sub_values = []
                         for component in condition["component"]:
                             val = component["valueQuantity"]["value"]
                             unit = component["valueQuantity"]["unit"]
+                            val, unit = convert_units(val, unit)
+
                             sub_values.append((val, unit))
                         return t, d, sub_values
     return None
@@ -149,7 +162,7 @@ def plot(dates, values):
         locator = mdates.MonthLocator()
         date_format = mdates.DateFormatter('%Y-%m')
     else:
-        locator = mdates.YearLocator()  # MonthLocator does not need 'interval' parameter
+        locator = mdates.YearLocator()
         date_format = mdates.DateFormatter('%Y')
 
     # Create the plot
