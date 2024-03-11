@@ -25,10 +25,12 @@ I'm using Kaiser Northern California. I believe this will work with other Kaiser
 I believe this may be a [standard format](https://www.healthit.gov/faq/what-are-differences-between-electronic-medical-records-electronic-health-records-and-personal), so this code may work with more than just Kaiser.
 
 # Running the Code
-All that is currently implemented is fetchig "Conditions" and printing weight records. 
-
 It assumes your zip is expanded to the 'export' directory, in the current directory.
 
-```python health.py```
+I am using python 3.12.2
+
+```python health.py --help```
+
+```python health.py --stat Weight --plot ```
 
 
