@@ -204,7 +204,8 @@ def plot(dates, values: list[tuple[float, str]], values2: list[tuple[float, str]
     # Create the plot
     plt.figure(figsize=(10, 6))
     plt.plot(dates, values, marker='o', label=label)
-    plt.plot(dates, values2, marker='x', linestyle='--', label=label2)
+    if values2 is not None:
+        plt.plot(dates, values2, marker='x', linestyle='--', label=label2)
 
     # Set the locator and formatter
     plt.gca().xaxis.set_major_locator(locator)
@@ -212,7 +213,7 @@ def plot(dates, values: list[tuple[float, str]], values2: list[tuple[float, str]
 
     plt.gcf().autofmt_xdate()  # Rotate dates for better spacing
 
-    plt.title(F'Plot of {label} vs Date') 
+    plt.title(F'Plot of {label} vs Date')
     plt.xlabel('Date')
     plt.ylabel(label)
     plt.grid(True)
@@ -247,6 +248,7 @@ def do_vital(condition_path: Path, vital: str, after: str, print_data: bool, vpl
             values2= [observation[2][1][0] for observation in ws]
         else:
             values = [observation[2][0] for observation in ws]
+            values2= None
         plot(dates, values, values2, vital)
 
 
