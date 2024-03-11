@@ -48,7 +48,6 @@ class Observation:
     data: list[tuple]
 
 
-
 def convert_units(v, u):
     # TODO this should be optional, but we are parsing US data.
     if u == "kg":
@@ -216,9 +215,9 @@ def parse_args():
     args = parser.parse_args()
     return args.stat, args.condition, args.list_vitals, args.plot, args.print, args.after, args.csv
 
-def plot(dates, values: list[tuple[float, str]], values2: list[tuple[float, str]], graph_subject, subname0, subname1) -> None:
-    label0 = subname0 if subname0 else ""
-    label1 = subname1 if subname1 else ""
+def plot(dates, values: list[tuple[float, str]], values2: list[tuple[float, str]], graph_subject, data_name_1, data_name_2) -> None:
+    label0 = data_name_1 if data_name_1 else ""
+    label1 = data_name_2 if data_name_2 else ""
 
     dates = [datetime.strptime(date, '%Y-%m-%dT%H:%M:%SZ') for date in dates]
 
@@ -284,20 +283,21 @@ def do_vital(condition_path: Path, vital: str, after: str, print_data: bool, vpl
 
         dates = [observation[1] for observation in ws]
         # Assume lists are homogenous (all have same number and type of fields)
-        # Assume all stats are either list, or not list.
-        if isinstance(ws[0][2], list):
+        first = ws[0]
+        # Assume all valueQuantities are either list, or not list.
+        if isinstance(first[2], list):
             # The only multivalued field I have seen so far is blood pressure, with two values.
-            assert len(ws[0][2]) == 2
-            values = [observation[2][0].value for observation in ws]
-            values2 = [observation[2][1].value for observation in ws]
-            subname0 = ws[0][2][0].name
-            subname1 = ws[0][2][1].name
+            assert len(first[2]) == 2
+            values_1 = [observation[2][0].value for observation in ws]
+            values_2 = [observation[2][1].value for observation in ws]
+            data_name_1 = first[2][0].name
+            data_name_2 = first[2][1].name
         else:
-            values = [observation[2].value for observation in ws]
-            values2 = None
-            subname0 = vital
-            subname1 = vital
-        plot(dates, values, values2, vital, subname0, subname1)
+            values_1 = [observation[2].value for observation in ws]
+            values_2 = None
+            data_name_1 = vital
+            data_name_2 = None
+        plot(dates, values_1, values_2, vital, data_name_1, data_name_2)
 
 
 def go():
