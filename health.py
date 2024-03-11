@@ -11,6 +11,7 @@ import csv
 from dataclasses import dataclass
 
 # TODO Do we want to have an option to process multiple or all stats in one run?
+# TODO Option to list all types of documents found.
 
 @dataclass
 class ValueQuantity:
@@ -127,21 +128,21 @@ def print_csv(data: Iterable):
     print(output.getvalue(), end="")
 
 
-def print_conditions(cd: Path, csv_format: bool) -> NoReturn:
-    path = cd / "Condition*.json"
+def print_conditions(cd: Path, csv_format: bool, match:str) -> NoReturn:
+    path = cd / match
     conditions = []
     for p in glob.glob(str(path)):
         with open(p) as f:
             condition = json.load(f)
             conditions.append(
-                ("Condition",
+                (condition['resourceType'],
                  condition['recordedDate'],
-                 condition['clinicalStatus']['text'],
-                 condition['verificationStatus']['text'],
+                 condition['clinicalStatus']['coding'][0]['code'],
+                 condition['verificationStatus']['coding'][0]['code'],
                  condition['code']['text'],
                  )
             )
-    cs = sorted(conditions, key=lambda x: x.date)
+    cs = sorted(conditions, key=lambda x: x[1])
     for condition in cs:
         if csv_format:
             print_csv(condition)
@@ -197,8 +198,10 @@ def parse_args():
             'Weight" is not "weight".\nSome examples:\n' +
             'SpO2, Weight, "Blood Pressure" (quotes are required, if the name has spaces in it).' +
             'use the -l to get a list of stats found in your data.')
-    parser.add_argument('-c', '--condition', action='store_true',
+    parser.add_argument('-c', '--condition', action=argparse.BooleanOptionalAction,
                         help='Print all active conditions.')
+    parser.add_argument('-a', '--allergy', action=argparse.BooleanOptionalAction,
+                        help='Print all active allergies.')
     parser.add_argument('--csv', action='store_true',
                         help='Format printed output as csv')
     parser.add_argument('-l', '--list-vitals', action=argparse.BooleanOptionalAction,
@@ -210,7 +213,7 @@ def parse_args():
     parser.add_argument('--after', type=str,
                         help='YYYY-MM-DD format date. Only include dates after this date when using --stat.')
     args = parser.parse_args()
-    return args.stat, args.condition, args.list_vitals, args.plot, args.print, args.after, args.csv
+    return args.stat, args.condition, args.list_vitals, args.plot, args.print, args.after, args.csv, args.allergy
 
 def plot(dates, values: list[float], values2: list[float], graph_subject, data_name_1, data_name_2) -> None:
     label0 = data_name_1 if data_name_1 else ""
@@ -299,7 +302,7 @@ def do_vital(condition_path: Path, vital: str, after: str, print_data: bool, vpl
 
 
 def go():
-    vital, condition, lv, vplot, print_data, after, csv_format = parse_args()
+    vital, condition, lv, vplot, print_data, after, csv_format, allergy = parse_args()
     base = Path("export/apple_health_export")
     condition_path = base / "clinical-records"
 
@@ -308,7 +311,10 @@ def go():
         return
 
     if condition:
-        print_conditions(condition_path, csv_format)
+        print_conditions(condition_path, csv_format, "Condition*.json")
+
+    if allergy:
+        print_conditions(condition_path, csv_format, "All*.json")
 
     if vital:
         do_vital(condition_path, vital, after, print_data, vplot, csv_format)
