@@ -211,7 +211,7 @@ def go():
             ad = datetime.strptime(after, '%Y-%m-%d')
             ws = [w for w in ws if ad < datetime.strptime(w[1], '%Y-%m-%dT%H:%M:%SZ')]
         if not print_data and not vplot:
-            print("You need to select at least one of -s or --print with --stat")
+            print("You need to select at least one of --plot or --print with --stat")
             return
         if print_data:
             print_values(ws)
