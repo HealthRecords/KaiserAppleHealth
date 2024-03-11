@@ -47,9 +47,10 @@ def extract_value(file: str, sign_name: str) -> tuple | None:
                         for component in condition["component"]:
                             val = component["valueQuantity"]["value"]
                             unit = component["valueQuantity"]["unit"]
+                            text = component["code"]["text"]
                             val, unit = convert_units(val, unit)
 
-                            sub_values.append((val, unit))
+                            sub_values.append((val, unit, text))
                         return t, d, sub_values
     return None
 
