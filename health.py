@@ -177,10 +177,10 @@ def parse_args():
     args = parser.parse_args()
     return args.stat, args.condition, args.list_vitals, args.plot, args.print, args.after, args.csv
 
-def plot(dates, values: list[tuple[float, str]], values2: list[tuple[float, str]], label) -> None:
-    label2 = label
-    # values2 = [v[0]/2 for v in values]
-    # Assuming 'dates' and 'values' are defined
+def plot(dates, values: list[tuple[float, str]], values2: list[tuple[float, str]], graph_subject, subname0, subname1) -> None:
+    label0 = subname0 if subname0 else ""
+    label1 = subname1 if subname1 else ""
+
     dates = [datetime.strptime(date, '%Y-%m-%dT%H:%M:%SZ') for date in dates]
 
     # Find the date range
@@ -204,19 +204,20 @@ def plot(dates, values: list[tuple[float, str]], values2: list[tuple[float, str]
 
     # Create the plot
     plt.figure(figsize=(10, 6))
-    plt.plot(dates, values, marker='o', label=label)
+    plt.plot(dates, values, marker='o', label=label0)
     if values2 is not None:
-        plt.plot(dates, values2, marker='x', linestyle='--', label=label2)
+        plt.plot(dates, values2, marker='x', linestyle='--', label=label1)
 
+    plt.legend()
     # Set the locator and formatter
     plt.gca().xaxis.set_major_locator(locator)
     plt.gca().xaxis.set_major_formatter(date_format)
 
     plt.gcf().autofmt_xdate()  # Rotate dates for better spacing
 
-    plt.title(F'Plot of {label} vs Date')
+    plt.title(F'Plot of {graph_subject} vs Date')
     plt.xlabel('Date')
-    plt.ylabel(label)
+    plt.ylabel(graph_subject)
     plt.grid(True)
     plt.tight_layout()
 
@@ -243,14 +244,19 @@ def do_vital(condition_path: Path, vital: str, after: str, print_data: bool, vpl
     if vplot:
 
         dates = [observation[1] for observation in ws]
+        # Assume lists are homogenous (all have same number and type of fields)
         # Assume all stats are either list, or not list.
         if isinstance(ws[0][2], list):
-            values  = [observation[2][0][0] for observation in ws]
+            # The only multivalued field I have seen so far is blood pressure, with two values.
+            assert len(ws[0][2]) == 2
+            values = [observation[2][0][0] for observation in ws]
             values2 = [observation[2][1][0] for observation in ws]
+            subname0 = ws[0][2][0][2]
+            subname1 = ws[0][2][1][2]
         else:
-            values  = [observation[2][0] for observation in ws]
+            values = [observation[2][0] for observation in ws]
             values2 = None
-        plot(dates, values, values2, vital)
+        plot(dates, values, values2, vital, subname0, subname1)
 
 
 def go():
