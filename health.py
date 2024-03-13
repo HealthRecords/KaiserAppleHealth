@@ -11,7 +11,7 @@ import csv
 from dataclasses import dataclass
 from collections import Counter
 
-# TODO There are more types of json documents that I had seen. Add a method to print all types, then go from there.
+# TODO print_condition and print_medicines should be generalized and combined.
 # TODO Do we want to have an option to process multiple or all stats in one run?
 # TODO Option to list all types of documents found.
 
@@ -151,6 +151,34 @@ def print_conditions(cd: Path, csv_format: bool, match: str) -> NoReturn:
             # Almost the same as csv, but the csv version escapes special characters, if there are any.
             print(condition)
 
+def print_medicines(cd: Path, csv_format: bool, match: str, include_inactive: bool) -> NoReturn:
+    path = cd / match
+    conditions = []
+    for p in glob.glob(str(path)):
+        with open(p) as f:
+            condition = json.load(f)
+            active = not condition['status'] in ['completed', 'stopped']
+            is_active = not condition['status'] in ['completed', 'stopped']
+            if is_active or include_inactive:
+                d = condition['authoredOn']
+                # Line up printed columns
+                if len(d) == 10:
+                    d += 10*' '
+                conditions.append(
+                    (condition['resourceType'],
+                     d,
+                     condition['status'],
+                     condition['medicationReference']['display'],
+                     )
+                )
+    cs = sorted(conditions, key=lambda x: x[1])
+    for condition in cs:
+        if csv_format:
+            print_csv(condition)
+        else:
+            # Almost the same as csv, but the csv version escapes special characters, if there are any.
+            print(condition)
+
 def print_value(w: Observation):
     print(F"{w.name:10}: {w.date} - ", end="")
     values = w.data
@@ -222,6 +250,10 @@ def parse_args():
                         help='Show the types of documents in the clinical-records directory')
     parser.add_argument('-l', '--list-vitals', action=argparse.BooleanOptionalAction,
                         help='List names of all vital signs that were found.')
+    parser.add_argument('-m', '--medicines', action=argparse.BooleanOptionalAction,
+                        help='List all active medicines that were found.')
+    parser.add_argument('--medicines-all', action=argparse.BooleanOptionalAction,
+                        help='List all active medicines that were found.')
     parser.add_argument('--plot',  action=argparse.BooleanOptionalAction,
                         help='Plots the vital statistic selected with --stat.')
     parser.add_argument('--print', action=argparse.BooleanOptionalAction,
@@ -232,8 +264,8 @@ def parse_args():
             'SpO2, Weight, "Blood Pressure" (quotes are required, if the name has spaces in it).' +
             'use the -l to get a list of stats found in your data.')
     args = parser.parse_args()
-    active = [args.allergy, args.condition, args.document_types, args.list_vitals, args.stat ]
-    flags = [ "-a", "-c", "-d", "-l", "-s"]
+    active = [args.allergy, args.condition, args.document_types, args.list_vitals, args.medicines, args.medicines_all, args.stat ]
+    flags = [ "-a", "-c", "-d", "-l", "-m", "--medicines-all", "-s"]
     return args, active, flags
 
 def plot(dates, values: list[float], values2: list[float], graph_subject, data_name_1, data_name_2) -> None:
@@ -323,7 +355,6 @@ def do_vital(condition_path: Path, vital: str, after: str, print_data: bool, vpl
 
 
 def go():
-    # vital, condition, lv, vplot, print_data, after, csv_format, allergy = parse_args()
     args, active, flags = parse_args()
     base = Path("export/apple_health_export")
     condition_path = base / "clinical-records"
@@ -337,6 +368,12 @@ def go():
 
     if args.allergy:
         print_conditions(condition_path, args.csv_format, "All*.json")
+
+    include_inactive = False
+    if args.medicines_all:
+        include_inactive = True
+    if args.medicines or args.medicines_all:
+        print_medicines(condition_path, args.csv_format, "Medi*.json", include_inactive)
 
     if args.stat:
         do_vital(condition_path, args.stat, args.after, args.print, args.plot, args.csv_format)
