@@ -93,9 +93,8 @@ def extract_value(file: str, sign_name: str) -> Observation | None:
                         return Observation(t, d, sub_values)
     return None
 
-def yield_observations(cd: Path) -> Iterable[str]:
-    path = cd / "Observation*.json"
-    for p in glob.glob(str(path)):
+def yield_observations(dir_path: Path) -> Iterable[str]:
+    for p in dir_path.glob("Observation*.json"):
         yield p
 
 def filter_category(observation_files: Iterable[str], category: str) -> Iterable[dict]:
