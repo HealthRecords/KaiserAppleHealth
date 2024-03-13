@@ -176,29 +176,33 @@ def print_values(ws: list[Observation], csv_format: bool) -> NoReturn:
             print_value(w)
 
 
-def list_vitals(observation_files: Iterable[str]) -> set[str]:
-    vitals = set()
+def list_vitals(observation_files: Iterable[str]) -> Counter:
+    vitals = Counter()
     signs_found = filter_category(observation_files, "Vital Signs")
     for observation in signs_found:
         code_name = observation['code']['text']
-        vitals.add(code_name)
+        vitals[code_name] += 1
     return vitals
 
 def print_vitals(observation_files: Iterable[str]) -> NoReturn:
     vitals = list_vitals(observation_files)
     print("Vital Statistics found in records.")
-    for stat in sorted(vitals):
-        print("\t", stat)
+    v_sorted = sorted(vitals, key=lambda x: vitals[x], reverse=True)
+    for v in v_sorted:
+        print(F"{vitals[v]:6} {v}")
 
-
-def print_record_types(dir_path: Path) -> NoReturn:
+def list_prefixes(dir_path: Path) -> Counter:
     extensions = Counter()
     for p in dir_path.glob("*.json"):
         name = p.stem
         parts = name.split("-")
         prefix = parts[0]
         extensions[prefix] += 1
+    return extensions
 
+
+def print_prefixes(dir_path: Path) -> NoReturn:
+    extensions = list_prefixes(dir_path)
     print(F"File prefixes found in {dir_path}")
     for ext, count in extensions.items():
         print(F"{count:6} {ext}")
@@ -342,7 +346,7 @@ def go():
         print_vitals(observation_files=yield_observations(condition_path))
 
     if args.document_types:
-        print_record_types(condition_path)
+        print_prefixes(condition_path)
 
 if __name__ == "__main__":
     go()

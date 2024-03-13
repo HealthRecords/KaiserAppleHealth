@@ -1,5 +1,6 @@
+from pathlib import Path
 from unittest import TestCase
-from health import extract_value, list_vitals
+from health import extract_value, list_vitals, list_prefixes
 
 
 class Test(TestCase):
@@ -20,3 +21,8 @@ class Test(TestCase):
         vitals = list_vitals([test_file])
         self.assertEqual(1, len(vitals))
         self.assertTrue("Blood Pressure" in vitals)
+
+    def test_list_prefixes(self):
+        vitals = list_prefixes(Path("."))
+        self.assertEqual(1, len(vitals))
+        self.assertEqual(2, vitals["Observation"])
