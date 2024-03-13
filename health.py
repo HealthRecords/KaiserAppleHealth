@@ -10,6 +10,7 @@ import matplotlib.dates as mdates
 import csv
 from dataclasses import dataclass
 
+# TODO There are more types of json documents that I had seen. Add a method to print all types, then go from there.
 # TODO Do we want to have an option to process multiple or all stats in one run?
 # TODO Option to list all types of documents found.
 
@@ -204,30 +205,29 @@ def print_vitals(observation_files: Iterable[str]) -> NoReturn:
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Explore Kaiser Health Data',
-                                     epilog='Example usage: python health.py -s Weight, --plot-vitals, --print')
+                                     epilog='Example usage: python health.py -s Weight, --plot, --print')
 
-    # Add verbose argument
-    parser.add_argument('-s', '--stat', type=str,
-        help='Print a vital statistic, like weight. Name has to match EXACTLY, ' +
-            'Weight" is not "weight".\nSome examples:\n' +
-            'SpO2, Weight, "Blood Pressure" (quotes are required, if the name has spaces in it).' +
-            'use the -l to get a list of stats found in your data.')
-    parser.add_argument('-c', '--condition', action=argparse.BooleanOptionalAction,
-                        help='Print all active conditions.')
     parser.add_argument('-a', '--allergy', action=argparse.BooleanOptionalAction,
                         help='Print all active allergies.')
-    # parser.add_argument('--d', '--document-types', action=argparse.BooleanOptionalAction,
-    #                     help='Show the types of documents in the clinical-records directory')
+    parser.add_argument('--after', type=str,
+                        help='YYYY-MM-DD format date. Only include dates after this date when using --stat.')
+    parser.add_argument('-c', '--condition', action=argparse.BooleanOptionalAction,
+                        help='Print all active conditions.')
     parser.add_argument('--csv-format', action=argparse.BooleanOptionalAction,
                         help='Format printed output as csv')
+    # parser.add_argument('--d', '--document-types', action=argparse.BooleanOptionalAction,
+    #                     help='Show the types of documents in the clinical-records directory')
     parser.add_argument('-l', '--list-vitals', action=argparse.BooleanOptionalAction,
                         help='List names of all vital signs that were found.')
     parser.add_argument('--plot',  action=argparse.BooleanOptionalAction,
                         help='Plots the vital statistic selected with --stat.')
     parser.add_argument('--print', action=argparse.BooleanOptionalAction,
                         help='Prints the vital statistic selected with --stat.')
-    parser.add_argument('--after', type=str,
-                        help='YYYY-MM-DD format date. Only include dates after this date when using --stat.')
+    parser.add_argument('-s', '--stat', type=str,
+        help='Print a vital statistic, like weight. Name has to match EXACTLY, ' +
+            'Weight" is not "weight".\nSome examples:\n' +
+            'SpO2, Weight, "Blood Pressure" (quotes are required, if the name has spaces in it).' +
+            'use the -l to get a list of stats found in your data.')
     args = parser.parse_args()
     return args
 
@@ -338,7 +338,6 @@ def go():
 
     if args.list_vitals:
         print_vitals(observation_files=yield_observations(condition_path))
-
 
 if __name__ == "__main__":
     go()
