@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import csv
 from dataclasses import dataclass
+from collections import Counter
 
 # TODO There are more types of json documents that I had seen. Add a method to print all types, then go from there.
 # TODO Do we want to have an option to process multiple or all stats in one run?
@@ -189,19 +190,18 @@ def print_vitals(observation_files: Iterable[str]) -> NoReturn:
     for stat in sorted(vitals):
         print("\t", stat)
 
-# def list_record_types(observation_files: Iterable[str]) -> set[str]:
-#     vitals = set()
-#     signs_found = filter_category(observation_files, "Vital Signs")
-#     for observation in signs_found:
-#         code_name = observation['code']['text']
-#         vitals.add(code_name)
-#     return vitals
-#
-# def print_record_types(observation_files: Iterable[str]) -> NoReturn:
-#     vitals = list_vitals(observation_files)
-#     print("Vital Statistics found in records.")
-#     for stat in sorted(vitals):
-#         print("\t", stat)
+
+def print_record_types(dir_path: Path) -> NoReturn:
+    extensions = Counter()
+    for p in dir_path.glob("*.json"):
+        name = p.stem
+        parts = name.split("-")
+        prefix = parts[0]
+        extensions[prefix] += 1
+
+    print(F"File prefixes found in {dir_path}")
+    for ext, count in extensions.items():
+        print(F"{count:6} {ext}")
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Explore Kaiser Health Data',
@@ -215,8 +215,8 @@ def parse_args():
                         help='Print all active conditions.')
     parser.add_argument('--csv-format', action=argparse.BooleanOptionalAction,
                         help='Format printed output as csv')
-    # parser.add_argument('--d', '--document-types', action=argparse.BooleanOptionalAction,
-    #                     help='Show the types of documents in the clinical-records directory')
+    parser.add_argument('-d', '--document-types', action=argparse.BooleanOptionalAction,
+                        help='Show the types of documents in the clinical-records directory')
     parser.add_argument('-l', '--list-vitals', action=argparse.BooleanOptionalAction,
                         help='List names of all vital signs that were found.')
     parser.add_argument('--plot',  action=argparse.BooleanOptionalAction,
@@ -229,7 +229,9 @@ def parse_args():
             'SpO2, Weight, "Blood Pressure" (quotes are required, if the name has spaces in it).' +
             'use the -l to get a list of stats found in your data.')
     args = parser.parse_args()
-    return args
+    active = [args.allergy, args.condition, args.document_types, args.list_vitals, args.stat ]
+    flags = [ "-a", "-c", "-d", "-l", "-s"]
+    return args, active, flags
 
 def plot(dates, values: list[float], values2: list[float], graph_subject, data_name_1, data_name_2) -> None:
     label0 = data_name_1 if data_name_1 else ""
@@ -319,12 +321,12 @@ def do_vital(condition_path: Path, vital: str, after: str, print_data: bool, vpl
 
 def go():
     # vital, condition, lv, vplot, print_data, after, csv_format, allergy = parse_args()
-    args = parse_args()
+    args, active, flags = parse_args()
     base = Path("export/apple_health_export")
     condition_path = base / "clinical-records"
 
-    if not args.condition and not args.stat:
-        print("Please select either -s, -c or -l to get some output.")
+    if not any(active):
+        print(F"Please select one of {flags} to get some output.")
         return
 
     if args.condition:
@@ -338,6 +340,9 @@ def go():
 
     if args.list_vitals:
         print_vitals(observation_files=yield_observations(condition_path))
+
+    if args.document_types:
+        print_record_types(condition_path)
 
 if __name__ == "__main__":
     go()
