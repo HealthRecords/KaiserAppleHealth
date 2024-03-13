@@ -188,6 +188,20 @@ def print_vitals(observation_files: Iterable[str]) -> NoReturn:
     for stat in sorted(vitals):
         print("\t", stat)
 
+# def list_record_types(observation_files: Iterable[str]) -> set[str]:
+#     vitals = set()
+#     signs_found = filter_category(observation_files, "Vital Signs")
+#     for observation in signs_found:
+#         code_name = observation['code']['text']
+#         vitals.add(code_name)
+#     return vitals
+#
+# def print_record_types(observation_files: Iterable[str]) -> NoReturn:
+#     vitals = list_vitals(observation_files)
+#     print("Vital Statistics found in records.")
+#     for stat in sorted(vitals):
+#         print("\t", stat)
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Explore Kaiser Health Data',
                                      epilog='Example usage: python health.py -s Weight, --plot-vitals, --print')
@@ -202,7 +216,9 @@ def parse_args():
                         help='Print all active conditions.')
     parser.add_argument('-a', '--allergy', action=argparse.BooleanOptionalAction,
                         help='Print all active allergies.')
-    parser.add_argument('--csv', action='store_true',
+    # parser.add_argument('--d', '--document-types', action=argparse.BooleanOptionalAction,
+    #                     help='Show the types of documents in the clinical-records directory')
+    parser.add_argument('--csv-format', action=argparse.BooleanOptionalAction,
                         help='Format printed output as csv')
     parser.add_argument('-l', '--list-vitals', action=argparse.BooleanOptionalAction,
                         help='List names of all vital signs that were found.')
@@ -213,7 +229,7 @@ def parse_args():
     parser.add_argument('--after', type=str,
                         help='YYYY-MM-DD format date. Only include dates after this date when using --stat.')
     args = parser.parse_args()
-    return args.stat, args.condition, args.list_vitals, args.plot, args.print, args.after, args.csv, args.allergy
+    return args
 
 def plot(dates, values: list[float], values2: list[float], graph_subject, data_name_1, data_name_2) -> None:
     label0 = data_name_1 if data_name_1 else ""
@@ -302,24 +318,25 @@ def do_vital(condition_path: Path, vital: str, after: str, print_data: bool, vpl
 
 
 def go():
-    vital, condition, lv, vplot, print_data, after, csv_format, allergy = parse_args()
+    # vital, condition, lv, vplot, print_data, after, csv_format, allergy = parse_args()
+    args = parse_args()
     base = Path("export/apple_health_export")
     condition_path = base / "clinical-records"
 
-    if not condition and not vital:
+    if not args.condition and not args.stat:
         print("Please select either -s, -c or -l to get some output.")
         return
 
-    if condition:
-        print_conditions(condition_path, csv_format, "Condition*.json")
+    if args.condition:
+        print_conditions(condition_path, args.csv_format, "Condition*.json")
 
-    if allergy:
-        print_conditions(condition_path, csv_format, "All*.json")
+    if args.allergy:
+        print_conditions(condition_path, args.csv_format, "All*.json")
 
-    if vital:
-        do_vital(condition_path, vital, after, print_data, vplot, csv_format)
+    if args.stat:
+        do_vital(condition_path, args.stat, args.after, args.print, args.plot, args.csv_format)
 
-    if lv:
+    if args.list_vitals:
         print_vitals(observation_files=yield_observations(condition_path))
 
 
