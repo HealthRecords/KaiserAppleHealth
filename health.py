@@ -11,9 +11,9 @@ import csv
 from dataclasses import dataclass
 from collections import Counter
 
-# TODO There are over a dozen categories. I'm only printing a few, so far. I see, for example, Lab, Outpatient, Discharge,
-#      Imaging, medication (lowercase) and more. I may need some generalized way to print / sum /graph these. Maybe
-#        something like "jq".
+# TODO There are over a dozen categories. I'm only printing a few, so far. I see, for example, Lab, Outpatient,
+#      Discharge,Imaging, medication (lowercase) and more. I may need some generalized way to print / sum /graph these.
+#      Maybe something like "jq".
 # TODO print_condition and print_medicines should be generalized and combined.
 # TODO Do we want to have an option to process multiple or all stats in one run?
 # TODO Option to list all types of documents found.
@@ -63,13 +63,13 @@ def convert_units(v, u):
         u = "Fah"
     return v, u
 
-def extract_value(file: str, sign_name: str) -> Observation | None:
+def extract_value(file: str, sign_name: str, *, category_name) -> Observation | None:
     with open(file) as f:
         condition = json.load(f)
         category_info = condition['category']
         assert isinstance(category_info, list)
         for ci in category_info:
-            if ci['text'] == "Vital Signs":
+            if ci['text'] == category_name:
                 if condition['code']['text'] == sign_name:
                     t = sign_name
                     d = condition['effectiveDateTime']
@@ -116,20 +116,20 @@ def filter_category(observation_files: Iterable[str], category: str) -> Iterable
                 if ci['text'] == category:
                     yield observation
 
-def extract_all_values(observation_files: Iterable[str], sign_name: str) -> list[Observation]:
+def extract_all_values(observation_files: Iterable[str], sign_name: str, *, category_name) -> list[Observation]:
     """
 
     :param observation_files: iterable of files to read
-    :param sign_name:  The name of the vital sign we want data for
+    :param sign_name:  The name of the vital sign we want data for. (now, this is a code, within any category,
+                       not just "Vital Signs")
+    :category_name: Like "Vital Signs". It appears that all "Observation*.json" file have a category.
     :return: Instance of class Observation or None
     """
     values = []
     for p in observation_files:
-        value = extract_value(p, sign_name)
+        value = extract_value(p, sign_name, category_name=category_name)
         if value is not None:
             values.append(value)
-        else:
-            print("Skipped value in observation for ", str, p)
     values = sorted(values, key=lambda x: x.date)
     return values
 
@@ -168,7 +168,6 @@ def print_medicines(cd: Path, csv_format: bool, match: str, include_inactive: bo
     for p in glob.glob(str(path)):
         with open(p) as f:
             condition = json.load(f)
-            active = not condition['status'] in ['completed', 'stopped']
             is_active = not condition['status'] in ['completed', 'stopped']
             if is_active or include_inactive:
                 d = condition['authoredOn']
@@ -214,17 +213,17 @@ def print_values(ws: list[Observation], csv_format: bool) -> NoReturn:
             print_value(w)
 
 
-def list_vitals(observation_files: Iterable[str]) -> Counter:
+def list_vitals(observation_files: Iterable[str], category: str) -> Counter:
     vitals = Counter()
-    signs_found = filter_category(observation_files, "Vital Signs")
+    signs_found = filter_category(observation_files, category)
     for observation in signs_found:
         code_name = observation['code']['text']
         vitals[code_name] += 1
     return vitals
 
-def print_vitals(observation_files: Iterable[str]) -> NoReturn:
-    vitals = list_vitals(observation_files)
-    print("Vital Statistics found in records.")
+def print_vitals(observation_files: Iterable[str], category: str) -> NoReturn:
+    vitals = list_vitals(observation_files, category)
+    print(F"Files that have a category of '{category}' were found in files. These codes were found in them.")
     v_sorted = sorted(vitals, key=lambda x: vitals[x], reverse=True)
     for v in v_sorted:
         print(F"{vitals[v]:6} {v}")
@@ -270,7 +269,7 @@ def list_categories(dir_path: Path, only_first) -> Counter:
     ]
 
     :param dir_path: Path of the directory to scan.
-    :param only_first:  Only take the first category in a file. This is so we can see if there are any files wihtout
+    :param only_first:  Only take the first category in a file. This is so we can see if there are any files without
                         categories.
     :return:
     """
@@ -329,6 +328,8 @@ def parse_args():
                         help='Format printed output as csv')
     parser.add_argument('-d', '--document-types', action=argparse.BooleanOptionalAction,
                         help='Show the types of documents in the clinical-records directory')
+    parser.add_argument('-g', '--generic', type=str,
+                        help='Lets you specify a category and a code, like -g Vital-signs:Weight. See --categories')
     parser.add_argument('-l', '--list-vitals', action=argparse.BooleanOptionalAction,
                         help='List names of all vital signs that were found.')
     parser.add_argument('-m', '--medicines', action=argparse.BooleanOptionalAction,
@@ -346,8 +347,8 @@ def parse_args():
             'use the -l to get a list of stats found in your data.')
     args = parser.parse_args()
     active = [args.allergy, args.condition, args.document_types, args.list_vitals, args.medicines, args.medicines_all,
-              args.categories, args.stat ]
-    flags = [ "-a", "-c", "-d", "-l", "-m", "--medicines-all", "--categories", "-s"]
+              args.categories, args.stat, args.generic]
+    flags = ["-a", "-c", "-d", "-l", "-m", "--medicines-all", "--categories", "-s", "-g"]
     return args, active, flags
 
 def plot(dates, values: list[float], values2: list[float], graph_subject, data_name_1, data_name_2) -> None:
@@ -396,8 +397,9 @@ def plot(dates, values: list[float], values2: list[float], graph_subject, data_n
 
     plt.show()
 
-def do_vital(condition_path: Path, vital: str, after: str, print_data: bool, vplot: bool, csv_format: bool) -> NoReturn:
-    ws = extract_all_values(yield_observation_files(condition_path), vital)
+def do_vital(condition_path: Path, vital: str, after: str, print_data: bool, vplot: bool, csv_format: bool,
+             *, category_name) -> NoReturn:
+    ws = extract_all_values(yield_observation_files(condition_path), vital, category_name=category_name)
     if after:
         ad = datetime.strptime(after, '%Y-%m-%d')
         ws = [w for w in ws if ad < datetime.strptime(w.date, '%Y-%m-%dT%H:%M:%SZ')]
@@ -455,13 +457,24 @@ def go():
     if args.medicines_all:
         include_inactive = True
     if args.medicines or args.medicines_all:
-        print_medicines(condition_path, args.csv_format, "Medi*.json", include_inactive)
+        print_medicines(condition_path, args.csv_format, "MedicationRequest*.json", include_inactive)
 
     if args.stat:
-        do_vital(condition_path, args.stat, args.after, args.print, args.plot, args.csv_format)
+        do_vital(condition_path, args.stat, args.after, args.print, args.plot, args.csv_format, category_name="Vital Signs")
 
     if args.list_vitals:
-        print_vitals(observation_files=yield_observation_files(condition_path))
+        print_vitals(observation_files=yield_observation_files(condition_path), category="Vital Signs")
+
+    if args.generic:
+        param = args.generic.split(":", 1)
+        assert isinstance(param, list)
+        if len(param) == 1:
+            print_vitals(observation_files=yield_observation_files(condition_path), category=param[0])
+        elif len(param) == 2:
+            do_vital(condition_path, param[1], args.after, args.print, args.plot, args.csv_format,
+                     category_name=param[0])
+        else:
+            print("Invalid format: use -g category:code     like '-g \"Vital Signs:Blood Pressure\"")
 
     if args.categories:
         list_categories(condition_path, only_first=False)
