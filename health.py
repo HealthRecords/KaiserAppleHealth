@@ -11,6 +11,9 @@ import csv
 from dataclasses import dataclass
 from collections import Counter
 
+# TODO There are over a dozen categories. I'm only printing a few, so far. I see, for example, Lab, Outpatient, Discharge,
+#      Imaging, medication (lowercase) and more. I may need some generalized way to print / sum /graph these. Maybe
+#        something like "jq".
 # TODO print_condition and print_medicines should be generalized and combined.
 # TODO Do we want to have an option to process multiple or all stats in one run?
 # TODO Option to list all types of documents found.
@@ -93,7 +96,7 @@ def extract_value(file: str, sign_name: str) -> Observation | None:
                         return Observation(t, d, sub_values)
     return None
 
-def yield_observations(dir_path: Path) -> Iterable[str]:
+def yield_observation_files(dir_path: Path) -> Iterable[str]:
     for p in dir_path.glob("Observation*.json"):
         yield p
 
@@ -113,12 +116,20 @@ def filter_category(observation_files: Iterable[str], category: str) -> Iterable
                 if ci['text'] == category:
                     yield observation
 
-def extract_all_values(observations: Iterable[str], sign_name: str) -> list[Observation]:
+def extract_all_values(observation_files: Iterable[str], sign_name: str) -> list[Observation]:
+    """
+
+    :param observation_files: iterable of files to read
+    :param sign_name:  The name of the vital sign we want data for
+    :return: Instance of class Observation or None
+    """
     values = []
-    for p in observations:
+    for p in observation_files:
         value = extract_value(p, sign_name)
         if value is not None:
             values.append(value)
+        else:
+            print("Skipped value in observation for ", str, p)
     values = sorted(values, key=lambda x: x.date)
     return values
 
@@ -234,6 +245,62 @@ def print_prefixes(dir_path: Path) -> NoReturn:
     for ext, count in extensions.items():
         print(F"{count:6} {ext}")
 
+def list_categories(dir_path: Path) -> Counter:
+    """
+    The schema of this data is not well-designed. I have seen category expressed three ways so far.
+
+    "category":
+        "CAT_NAME"
+
+    "category": [
+        "CAT_NAME",
+        "CAT_NAME2"
+    ]
+
+    # Procedure-9EBC73F9-2883-416C-8C39-259B394A953D.json
+    "category" : {
+         "text" : "CAT_NAME",
+    }
+
+    # Observation-6A188217-E5D4-4A52-A762-7194900720FB.json
+    category: [
+        {
+            "text":"CAT_NAME"
+        }
+    ]
+
+    :param dir_path:
+    :return:
+    """
+    counter = Counter()
+    for p in dir_path.glob("*.json"):
+        with open(p) as f:
+            observation_data = json.load(f)
+            cat_top = observation_data["category"]
+            if isinstance(cat_top, str):
+                counter[cat_top] += 0.1
+            elif isinstance(cat_top, dict):
+                assert 'text' in ci
+                assert isinstance(cat_top['text'], str)
+                counter[cat_top['text']] += 1
+            elif isinstance(cat_top, list):
+                for ci in cat_top:
+                    if isinstance(ci, str):
+                        counter[ci] += 1
+                    elif isinstance(ci, dict):
+                        assert 'text' in ci
+                        counter[ci['text']] += 1
+            else:
+                assert False
+
+    c_sorted = sorted(counter, key=lambda x: counter[x], reverse=True)
+
+    for key in c_sorted:
+        print(F"{key:32}: {counter[key]:>6}")
+
+    return counter
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Explore Kaiser Health Data',
                                      epilog='Example usage: python health.py -s Weight, --plot, --print')
@@ -244,6 +311,8 @@ def parse_args():
                         help='YYYY-MM-DD format date. Only include dates after this date when using --stat.')
     parser.add_argument('-c', '--condition', action=argparse.BooleanOptionalAction,
                         help='Print all active conditions.')
+    parser.add_argument('--categories', action=argparse.BooleanOptionalAction,
+                        help='Print all active categories.')
     parser.add_argument('--csv-format', action=argparse.BooleanOptionalAction,
                         help='Format printed output as csv')
     parser.add_argument('-d', '--document-types', action=argparse.BooleanOptionalAction,
@@ -264,8 +333,9 @@ def parse_args():
             'SpO2, Weight, "Blood Pressure" (quotes are required, if the name has spaces in it).' +
             'use the -l to get a list of stats found in your data.')
     args = parser.parse_args()
-    active = [args.allergy, args.condition, args.document_types, args.list_vitals, args.medicines, args.medicines_all, args.stat ]
-    flags = [ "-a", "-c", "-d", "-l", "-m", "--medicines-all", "-s"]
+    active = [args.allergy, args.condition, args.document_types, args.list_vitals, args.medicines, args.medicines_all,
+              args.categories, args.stat ]
+    flags = [ "-a", "-c", "-d", "-l", "-m", "--medicines-all", "--categories", "-s"]
     return args, active, flags
 
 def plot(dates, values: list[float], values2: list[float], graph_subject, data_name_1, data_name_2) -> None:
@@ -315,7 +385,7 @@ def plot(dates, values: list[float], values2: list[float], graph_subject, data_n
     plt.show()
 
 def do_vital(condition_path: Path, vital: str, after: str, print_data: bool, vplot: bool, csv_format: bool) -> NoReturn:
-    ws = extract_all_values(yield_observations(condition_path), vital)
+    ws = extract_all_values(yield_observation_files(condition_path), vital)
     if after:
         ad = datetime.strptime(after, '%Y-%m-%d')
         ws = [w for w in ws if ad < datetime.strptime(w.date, '%Y-%m-%dT%H:%M:%SZ')]
@@ -379,7 +449,10 @@ def go():
         do_vital(condition_path, args.stat, args.after, args.print, args.plot, args.csv_format)
 
     if args.list_vitals:
-        print_vitals(observation_files=yield_observations(condition_path))
+        print_vitals(observation_files=yield_observation_files(condition_path))
+
+    if args.categories:
+        list_categories(condition_path)
 
     if args.document_types:
         print_prefixes(condition_path)
