@@ -33,4 +33,18 @@ I am using python 3.12.2
 
 ```python health.py --stat Weight --plot ```
 
+# Notes
+There are many more types of entries that are not yet supported. Run python --categories to see the list
+It's simple to add support for more types. 
 
+```
+python --categories
+
+Laboratory                      :   338
+Lab                             :   332
+Vital Signs                     :   116
+Clinical Note                   :    59
+Outpatient                      :    25
+Inpatient                       :    12
+Community                       :    21
+```
