@@ -245,7 +245,7 @@ def print_prefixes(dir_path: Path) -> NoReturn:
     for ext, count in extensions.items():
         print(F"{count:6} {ext}")
 
-def list_categories(dir_path: Path) -> Counter:
+def list_categories(dir_path: Path, only_first) -> Counter:
     """
     The schema of this data is not well-designed. I have seen category expressed three ways so far.
 
@@ -269,12 +269,16 @@ def list_categories(dir_path: Path) -> Counter:
         }
     ]
 
-    :param dir_path:
+    :param dir_path: Path of the directory to scan.
+    :param only_first:  Only take the first category in a file. This is so we can see if there are any files wihtout
+                        categories.
     :return:
     """
     counter = Counter()
+    count = 0
     for p in dir_path.glob("*.json"):
         with open(p) as f:
+            count += 1
             observation_data = json.load(f)
             cat_top = observation_data["category"]
             if isinstance(cat_top, str):
@@ -290,13 +294,21 @@ def list_categories(dir_path: Path) -> Counter:
                     elif isinstance(ci, dict):
                         assert 'text' in ci
                         counter[ci['text']] += 1
+                    if only_first:
+                        break
             else:
-                assert False
+                raise ValueError(F"File {p} has no category", p)
 
     c_sorted = sorted(counter, key=lambda x: counter[x], reverse=True)
+    print(F"Categories found in {count} files in {dir_path}")
 
-    for key in c_sorted:
-        print(F"{key:32}: {counter[key]:>6}")
+    c2 = 0
+    for index, key in enumerate(c_sorted):
+        print(F"{index:3}: {key:.<32}: {counter[key]:>6}")
+        c2 += counter[key]
+    print(F"                                       {"======":>6}")
+    print(F"{"":3}  Total files with categories.....: {c2:>6}")
+    print("Some files have more than one category. In particular, many files have both 'Lab' and 'Laboratory'")
 
     return counter
 
@@ -452,7 +464,7 @@ def go():
         print_vitals(observation_files=yield_observation_files(condition_path))
 
     if args.categories:
-        list_categories(condition_path)
+        list_categories(condition_path, only_first=False)
 
     if args.document_types:
         print_prefixes(condition_path)
