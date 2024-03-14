@@ -34,7 +34,7 @@ I am using python 3.12.2
 ```python health.py --stat Weight --plot ```
 
 # Notes
-There are many more types of entries that are not yet supported. Run python --categories to see the list
+There are many more types of entries that are not yet supported. Run python --categories to see the list.
 It's simple to add support for more types. 
 
 ```
