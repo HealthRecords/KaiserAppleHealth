@@ -11,16 +11,12 @@ import csv
 from dataclasses import dataclass
 from collections import Counter
 
-# TODO There are over a dozen categories. I'm only printing a few, so far. I see, for example, Lab, Outpatient,
-#      Discharge,Imaging, medication (lowercase) and more. I may need some generalized way to print / sum /graph these.
-#      Maybe something like "jq".
-# TODO Finish interactive user interface. Observations is just getting started.
+
+# TODO Finish interactive/menu user interface. Observations is just getting started.
 # For interactive mode, I need to be consistent about print, plot, and active/inactive.
 # TODO like medicines, conditions should have an option to print inactive.
-# TODO command line args, categories and medicines are plural, but condition is singular. Should be consistent.
 # TODO print_condition and print_medicines should be generalized and combined.
 # TODO Do we want to have an option to process multiple or all stats in one run?
-# TODO Option to list all types of documents found.
 
 
 @dataclass
@@ -364,7 +360,7 @@ def parse_args():
                         help='Print all active allergies.')
     parser.add_argument('--after', type=str,
                         help='YYYY-MM-DD format date. Only include dates after this date when using --stat.')
-    parser.add_argument('-c', '--condition', action=argparse.BooleanOptionalAction,
+    parser.add_argument('-c', '--conditions', action=argparse.BooleanOptionalAction,
                         help='Print all active conditions.')
     parser.add_argument('--categories', action=argparse.BooleanOptionalAction,
                         help='Print all active categories.')
