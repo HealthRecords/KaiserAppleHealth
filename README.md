@@ -25,6 +25,8 @@ I'm using Kaiser Northern California. I believe this will work with other Kaiser
 I believe this data format may be a [standard format](https://www.healthit.gov/faq/what-are-differences-between-electronic-medical-records-electronic-health-records-and-personal), so this code may work with more than just Kaiser.
 
 # Running the Code
+This is currently a command-line application. If you want a nice GUI, try one of the alternatives listed below.
+
 It assumes your zip is expanded to the 'export' directory, in the current directory.
 
 I am using python 3.12.2
@@ -48,3 +50,15 @@ Outpatient                      :    25
 Inpatient                       :    12
 Community                       :    21
 ```
+
+# Alternatives
+This is a weekend project. You are welcome to use it, and feedback is welcome. If you want a more polished or 
+supported alternative, you might want to look at
+
+1. Fasten Heath https://www.fastenhealth.com/
+2. Mere Medical https://meremedical.co/
+
+
+# Tools
+I'm not using this yet, just keeping track of this toolkit for later. https://www.openmhealth.org/features/case-studies/
+
