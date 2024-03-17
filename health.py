@@ -388,7 +388,7 @@ def parse_args():
             'SpO2, Weight, "Blood Pressure" (quotes are required, if the name has spaces in it).' +
             'use the -l to get a list of stats found in your data.')
     args = parser.parse_args()
-    active = [args.allergy, args.condition, args.document_types, args.list_vitals, args.medicines, args.medicines_all,
+    active = [args.allergy, args.conditions, args.document_types, args.list_vitals, args.medicines, args.medicines_all,
               args.categories, args.stat, args.generic, args.interactive]
     flags = ["-a", "-c", "-d", "-l", "-m", "--medicines-all", "--categories", "-s", "-g", "-i"]
     return args, active, flags
