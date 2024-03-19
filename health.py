@@ -12,11 +12,13 @@ from dataclasses import dataclass
 from collections import Counter
 
 
-# TODO Finish interactive/menu user interface. Observations is just getting started.
-# For interactive mode, I need to be consistent about print, plot, and active/inactive.
+# TODO Finish interactive/menu user interface. Observations is just getting started. Should this be a separate main?
+# TODO Should I forget the interactive UI and make a django version?
+# TODO For interactive mode, I need to be consistent about print, plot, and active/inactive.
 # TODO like medicines, conditions should have an option to print inactive.
 # TODO print_condition and print_medicines should be generalized and combined.
 # TODO Do we want to have an option to process multiple or all stats in one run?
+# TODO Should be able to graph anything with a value quantity and a date.
 
 
 @dataclass
@@ -120,7 +122,7 @@ def filter_category(observation_files: Iterable[str], category: str) -> Iterable
 def extract_all_values(observation_files: Iterable[str], sign_name: str, *, category_name) -> list[Observation]:
     """
 
-    :param observation_files: iterable of files to read
+    :param observation_files: iterable of files to read. Only Obser
     :param sign_name:  The name of the vital sign we want data for. (now, this is a code, within any category,
                        not just "Vital Signs")
     :category_name: Like "Vital Signs". It appears that all "Observation*.json" file have a category.
