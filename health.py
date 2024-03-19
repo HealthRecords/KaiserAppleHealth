@@ -97,6 +97,12 @@ def extract_value(file: str, sign_name: str, *, category_name) -> Observation | 
 
                             sub_values.append(vq)
                         return Observation(t, d, sub_values)
+                    elif "valueString" in condition:
+                        val = condition["valueString"]
+                        print(F"Found a string value of {val}")
+                        return None
+                    else:
+                        print(F"*** No value found in {file} ***")
     return None
 
 def yield_observation_files(dir_path: Path) -> Iterable[str]:
@@ -454,7 +460,7 @@ def do_vital(condition_path: Path, vital: str, after: str, print_data: bool, vpl
         ws = [w for w in ws if ad < datetime.strptime(w.date, '%Y-%m-%dT%H:%M:%SZ')]
 
     if not ws:
-        print(F"No data was found for stat {vital} ")
+        print(F"No numerical data was found for stat {vital} ")
         if after:
             print(F"In the range of values after {after}")
         print(F"You can use the -l argument to see what stats are in your data.")
