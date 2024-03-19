@@ -571,7 +571,7 @@ def go():
         user_interface(condition_path, args)
         return
 
-    if args.condition:
+    if args.conditions:
         print_conditions(condition_path, args.csv_format, "Condition*.json")
 
     if args.allergy:
