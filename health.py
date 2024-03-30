@@ -1,3 +1,4 @@
+#writing min/max/avg function right now. Need to handle BP for this.
 import glob
 import json
 from io import StringIO
@@ -12,13 +13,10 @@ from dataclasses import dataclass
 from collections import Counter
 
 
-# TODO Finish interactive/menu user interface. Observations is just getting started. Should this be a separate main?
-# TODO Should I forget the interactive UI and make a django version?
-# TODO For interactive mode, I need to be consistent about print, plot, and active/inactive.
-# TODO like medicines, conditions should have an option to print inactive.
 # TODO print_condition and print_medicines should be generalized and combined.
 # TODO Do we want to have an option to process multiple or all stats in one run?
-# TODO Should be able to graph anything with a value quantity and a date.
+# TODO Should be able to graph anything with a value quantity and a date. This is only observations, aat least
+# in my data. Need to handle string values for Observations
 
 
 @dataclass
@@ -378,8 +376,6 @@ def parse_args():
                         help='Show the types of documents in the clinical-records directory')
     parser.add_argument('-g', '--generic', type=str,
                         help='Lets you specify a category and a code, like -g Vital-signs:Weight. See --categories')
-    parser.add_argument('-i', '--interactive', action=argparse.BooleanOptionalAction,
-                        help='In interactive mode,  you will be prompted for choices.')
     parser.add_argument('-l', '--list-vitals', action=argparse.BooleanOptionalAction,
                         help='List names of all vital signs that were found.')
     parser.add_argument('-m', '--medicines', action=argparse.BooleanOptionalAction,
@@ -397,8 +393,8 @@ def parse_args():
             'use the -l to get a list of stats found in your data.')
     args = parser.parse_args()
     active = [args.allergy, args.conditions, args.document_types, args.list_vitals, args.medicines, args.medicines_all,
-              args.categories, args.stat, args.generic, args.interactive]
-    flags = ["-a", "-c", "-d", "-l", "-m", "--medicines-all", "--categories", "-s", "-g", "-i"]
+              args.categories, args.stat, args.generic]
+    flags = ["-a", "-c", "-d", "-l", "-m", "--medicines-all", "--categories", "-s", "-g"]
     return args, active, flags
 
 def plot(dates, values: list[float], values2: list[float], graph_subject, data_name_1, data_name_2) -> None:
@@ -467,6 +463,8 @@ def do_vital(condition_path: Path, vital: str, after: str, print_data: bool, vpl
         return
     if print_data:
         print_values(ws, csv_format)
+    # if print_min_max:
+    #     min = min(wc,key=lambda wc: )
 
     if vplot:
         dates = [observation.date for observation in ws]
@@ -490,73 +488,6 @@ def do_vital(condition_path: Path, vital: str, after: str, print_data: bool, vpl
         plot(dates, values_1, values_2, vital, data_name_1, data_name_2)
 
 
-def menu(choices: list[str]):
-    option = -1
-    while option < 1 or option > len(choices):
-        for index, choice in enumerate(choices):
-            print(f"[{index+1:3}] {choice}")
-        print(f"[{"q":>3}] {"quit"}")
-        print("Choose an option: ", end="")
-        c = input()
-        if c.strip() == "q":
-            return -1, "quit"
-        option = int(c)
-    return option - 1, choices[option - 1]
-
-def user_interface_observation(data_dir: Path, args):
-    """
-    Observations are anything measured. Test results, measurements of height or weight, etc.
-
-    :param data_dir:
-    :param args:
-    :return:
-    """
-    list_cat, dict_cat, file_count = list_categories(data_dir, False, one_prefix=None)
-    while (option := menu(list_cat))[0] != -1:
-        option_number, category = option
-        vitals = list_vitals(yield_observation_files(data_dir), category)
-        vital_list = [k for k in vitals.keys()]
-        while (choices := menu(vital_list))[0] != -1:
-            choice_number, choice_string = choices
-            do_vital(data_dir, choice_string, args.after, True, True, args.csv_format,
-                     category_name=category)
-        print("You want information about ", option[1])
-        # print("Would you like to print or plot this?")
-    return
-
-def user_interface(condition_path: Path, args) -> None:
-    """
-    display menus on the command line
-
-    :param args:
-    :param condition_path:
-    :return: No Return
-    """
-    print()
-    options = list(list_prefixes(condition_path).keys())
-    while (var := menu(options))[0] != len(options):
-        value = var[1]
-        match value:
-            case "quit":
-                return
-            case "Observation":
-                user_interface_observation(condition_path, args)
-            case "MedicationRequest":
-                include_inactive, v = menu(["Active Medicines", "All Medicines"])
-                include_inactive = bool(include_inactive)
-                print_medicines(condition_path, args.csv_format, "MedicationRequest*.json", include_inactive)
-            case "DocumentReference":
-                print("I don't know anything about DocumentReferences, yet.")
-            case "Condition":
-                print_conditions(condition_path, args.csv_format, "Condition*.json")
-            case "AllergyIntolerance":
-                print_conditions(condition_path, args.csv_format, "AllergyIntolerance*.json")
-            case "Procedure":
-                print_procedures(condition_path, args.csv_format, "Procedure*.json")
-            case _:
-                print("I don't know anything about " + value + " files, yet.")
-    return
-
 
 def go():
     args, active, flags = parse_args()
@@ -565,10 +496,6 @@ def go():
 
     if not any(active):
         print(F"Please select one of {flags} to get some output.")
-        return
-
-    if args.interactive:
-        user_interface(condition_path, args)
         return
 
     if args.conditions:
