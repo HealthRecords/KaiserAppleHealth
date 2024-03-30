@@ -1,6 +1,8 @@
 from unittest import TestCase
 
-from xml_reader import find, trim
+from xml_reader import find, trim, find_display_names, gen
+
+
 class Test(TestCase):
     def test_find(self):
         stack = [1,2,3]
@@ -32,4 +34,17 @@ class Test(TestCase):
                 t = element.text.strip()
             else:
                 t = element.text
-            print(element, t)
+            # print(element, t)
+
+    def test_find_display_names(self):
+        display_names, element_stack = find_display_names(
+            "test_data/test_find_display_names.xml", ["organizer", "code"])
+        self.assertEqual(1, len(display_names))
+        self.assertEqual(0, len(element_stack))
+        display_names, element_stack = find_display_names(
+            "test_data/test_find_display_names.xml", ["component", "observation", "code"])
+        self.assertEqual(2, len(display_names))
+        self.assertEqual(0, len(element_stack))
+
+
+

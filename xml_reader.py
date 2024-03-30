@@ -58,7 +58,30 @@ def trim(tag:str) -> str:
         return tag
     return tag[tag.find("}")+1:]
 
-if __name__ == "__main__":
+def clean_tag(tag:str) -> str:
+    tag = unicodedata.normalize("NFKD", trim(tag))
+    return tag
+
+def gen(file_name: str, events):
+    for index, i in enumerate(ET.iterparse(file_name, events=events)):
+        event, element = i
+        yield index, event, element
+
+def find_display_names(file_name: str, pattern: list[str]):
+    element_stack = []
+    display_names = set()
+    for index, event, element in gen(file_name, ["start", "end"]):
+        tag = clean_tag(element.tag)
+        if event == "start":
+            element_stack.append(tag)
+            if find(element_stack, target=pattern):
+                display_names.add(element.attrib['displayName'])
+        elif event == "end":
+            element_stack.pop()
+    return display_names, element_stack  # Only returning element_stack for test.
+
+
+def go():
     tags = set()
     element_stack = []
     # file_name = "test_data/export_cda_fraction.xml"
@@ -100,3 +123,6 @@ if __name__ == "__main__":
         print("All Tags:")
         for tag in sorted(tags):
             print(tag)
+
+if __name__ == "__main__":
+    go()
