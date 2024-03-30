@@ -4,12 +4,15 @@ import argparse
 from health import yield_observation_files, \
     list_categories, list_vitals, do_vital, list_prefixes, print_medicines, print_conditions, print_procedures
 
-
+# TODO maybe add a back option to menus (which is what q does, then q can be quit)
+# add option to print min/max/ave.
+#  TODO I have 199 items on the laboratory category. Step 1 sort them alphabetically, to make them easier to find.
+#           maybe allow the user to sort by alpha, or by date
+# TODO I have 199 items. Maybe split into submenus. Maybe automatically (a-h, i-k, l-z).
 # TODO Finish interactive/menu user interface. Observations is just getting started. Should this be a separate main?
 # TODO Should I forget the interactive UI and make a django version?
 # TODO For interactive mode, I need to be consistent about print, plot, and active/inactive.
 # TODO like medicines, conditions should have an option to print inactive.
-# TODO print_condition and print_medicines should be generalized and combined.
 # TODO Do we want to have an option to process multiple or all stats in one run?
 # TODO Should be able to graph anything with a value quantity and a date.
 
