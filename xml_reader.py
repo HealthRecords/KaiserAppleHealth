@@ -25,7 +25,6 @@ Using https://realpython.com/python-xml-parser/#xmletreeelementtree-a-lightweigh
 
 """
 import argparse
-import sys
 import unicodedata
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
@@ -86,7 +85,7 @@ def find_display_names(file_name: str, pattern: list[str]):
     return display_names, element_stack  # Only returning element_stack for test.
 
 
-def go():
+def get_test_results():
     tags = set()
     element_stack = []
     # file_name = "test_data/export_cda_fraction.xml"
@@ -129,22 +128,27 @@ def go():
         for tag in sorted(tags):
             print(tag)
 
+
+def get_all_test_tytpes():
+    print("This may take a few minutes...")
+    names, _ = find_display_names("export/apple_health_export/export_cda.xml", ["component", "observation", "code"])
+    max_count_name = max(names, key=names.get)
+    max_count = names[max_count_name]
+
+    lmc = int(log10(max_count) * (1 +  1 / 3) + 1)  ## Allow for commans
+    print(max_count, lmc)
+    for index, _ in enumerate(names.most_common()):
+        name, count = _
+        print(F"{index:6}: [{count:{lmc},}] {name} ")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Investigate data from Apple Health export.\nNote that "
-                                     "an export can be millions of records, so this can take a long time.")
+                                     "an export can be millions of records, so this can take a long time."
+                                     "When run with no arguments, it prints all tests and results.")
     parser.add_argument("-l", "--list", action="store_true", help="List all observations. SLOW! (minutes)")
     args = parser.parse_args()
     if args.list:
-        print("This may take a few minutes...")
-        names, _ = find_display_names("export/apple_health_export/export_cda.xml", ["component", "observation", "code"])
-        max_count_name = max(names, key=names.get)
-        max_count = names[max_count_name]
-
-        lmc = log10(max_count) + 1
-        print(max_count, lmc)
-        for index, _ in enumerate(names.most_common()):
-            name, count = _
-            print(F"{index:6}: [{count:10,}] {name} ")
-        sys.exit(1)
+        get_all_test_tytpes()
     else:
-        go()
+        get_test_results()
