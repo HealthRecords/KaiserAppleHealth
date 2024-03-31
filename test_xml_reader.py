@@ -45,6 +45,8 @@ class Test(TestCase):
             "test_data/test_find_display_names.xml", ["component", "observation", "code"])
         self.assertEqual(2, len(display_names))
         self.assertEqual(0, len(element_stack))
+        self.assertEqual(2, display_names["Heart rate"])
+        self.assertEqual(1, display_names["Alt heart rate"])
 
 
 
