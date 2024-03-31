@@ -42,8 +42,8 @@ I am using python 3.12.2
 
 ```python health.py --stat Weight --plot ```
 
-## text-ui gives a simple, menu based command line tool
-```python text-ui```
+## text_ui gives a simple, menu based command line tool
+```python text_ui```
 
 ## Look at Apple health data. 
 This tools is just getting started, today.
