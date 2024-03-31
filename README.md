@@ -40,7 +40,9 @@ I am using python 3.12.2
 ## For Kaiser / Medical items.
 ```python health.py --help```
 
-```python health.py --stat Weight --plot ```
+```python health.py --stat Weight --print```
+
+```python health.py --stat "Blood Pressure" --plot --after 2024-01-01```
 
 ## text_ui gives a simple, menu based command line tool
 ```python text_ui```
@@ -49,21 +51,6 @@ I am using python 3.12.2
 This tools is just getting started, today.
 ```python xml-reader --help```
 
-# Notes
-There are many more types of entries that are not yet supported. Run python --categories to see the list.
-It's simple to add support for more types. 
-
-```
-python health.py --categories
-
-Laboratory                      :   338
-Lab                             :   332
-Vital Signs                     :   116
-Clinical Note                   :    59
-Outpatient                      :    25
-Inpatient                       :    12
-Community                       :    21
-```
 
 # Alternatives
 This is a weekend project. You are welcome to use it, and feedback is welcome. It's sweet spot is probably just
@@ -75,6 +62,6 @@ If you want a more polished or supported alternative, you might want to look at
 2. Mere Medical https://meremedical.co/
 
 
-## Anot Tools
+## Another Alternative
 I'm not using this yet, just keeping track of this toolkit for later. https://www.openmhealth.org/
 
