@@ -15,9 +15,9 @@ from collections import Counter
 
 # TODO print_condition and print_medicines should be generalized and combined.
 # TODO Do we want to have an option to process multiple or all stats in one run?
-# TODO Should be able to graph anything with a value quantity and a date. This is only observations, aat least
-# in my data. Need to handle string values for Observations
-
+# TODO Should be able to graph anything with a value quantity and a date. This is only observations, at least
+#      in my data. Need to handle string values for Observations
+# TODO Add sparklines to graph multiple items on one page. Probably HTML page.
 
 @dataclass
 class ValueQuantity:
@@ -486,7 +486,6 @@ def do_vital(condition_path: Path, vital: str, after: str, print_data: bool, vpl
             raise ValueError(f"Unexpected number of data values. {len(first.data)}.")
 
         plot(dates, values_1, values_2, vital, data_name_1, data_name_2)
-
 
 
 def go():
