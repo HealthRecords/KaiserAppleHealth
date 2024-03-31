@@ -24,9 +24,14 @@ All tags from export_cda.xml:
 Using https://realpython.com/python-xml-parser/#xmletreeelementtree-a-lightweight-pythonic-alternative
 
 """
+import argparse
+import sys
 import unicodedata
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
+from collections import Counter
+from math import log10
+
 
 @dataclass
 class Observation:
@@ -69,13 +74,13 @@ def gen(file_name: str, events):
 
 def find_display_names(file_name: str, pattern: list[str]):
     element_stack = []
-    display_names = set()
+    display_names = Counter()
     for index, event, element in gen(file_name, ["start", "end"]):
         tag = clean_tag(element.tag)
         if event == "start":
             element_stack.append(tag)
             if find(element_stack, target=pattern):
-                display_names.add(element.attrib['displayName'])
+                display_names[element.attrib['displayName']] += 1
         elif event == "end":
             element_stack.pop()
     return display_names, element_stack  # Only returning element_stack for test.
@@ -125,4 +130,21 @@ def go():
             print(tag)
 
 if __name__ == "__main__":
-    go()
+    parser = argparse.ArgumentParser(description="Investigate data from Apple Health export.\nNote that "
+                                     "an export can be millions of records, so this can take a long time.")
+    parser.add_argument("-l", "--list", action="store_true", help="List all observations. SLOW! (minutes)")
+    args = parser.parse_args()
+    if args.list:
+        print("This may take a few minutes...")
+        names, _ = find_display_names("export/apple_health_export/export_cda.xml", ["component", "observation", "code"])
+        max_count_name = max(names, key=names.get)
+        max_count = names[max_count_name]
+
+        lmc = log10(max_count) + 1
+        print(max_count, lmc)
+        for index, _ in enumerate(names.most_common()):
+            name, count = _
+            print(F"{index:6}: [{count:10,}] {name} ")
+        sys.exit(1)
+    else:
+        go()
