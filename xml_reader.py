@@ -23,6 +23,8 @@ All tags from export_cda.xml:
 
 Using https://realpython.com/python-xml-parser/#xmletreeelementtree-a-lightweight-pythonic-alternative
 
+# TODO Add plotting
+
 """
 import argparse
 import unicodedata
