@@ -3,3 +3,4 @@ export*.zip
 .DS_Store
 .idea/
 __pycache__/
+sparklines.html
