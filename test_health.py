@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 from unittest import TestCase
-from health import extract_value, list_vitals, list_prefixes, list_categories, get_value_quantity
+from health import extract_value, list_vitals, list_prefixes, list_categories, get_value_quantity, get_reference_range
 
 
 class Test(TestCase):
@@ -52,7 +52,20 @@ class Test(TestCase):
 
     def test_get_reference_range(self):
         test_file = "test_data/ref_range.json"
-        pass
+        with open(test_file) as f:
+            record = json.load(f)
+        rr_info = record['referenceRange']
+        self.assertIsNotNone(rr_info)
+        self.assertTrue(isinstance(rr_info, list))
+        self.assertEqual(1, len(rr_info))
+        rr = get_reference_range(rr_info)
+        self.assertEqual(140, rr.low.value)
+        self.assertEqual("K/uL", rr.low.unit)
+        self.assertEqual("low", rr.low.name)
+
+        self.assertEqual(400, rr.high.value)
+        self.assertEqual("K/uL", rr.high.unit)
+        self.assertEqual("high", rr.high.name)
 
 
 

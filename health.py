@@ -128,10 +128,13 @@ def get_value_quantity(val: dict, test_name) -> ValueQuantity:
     vq = ValueQuantity(v, u, test_name)
     return vq
 
-def get_reference_range(r:dict) -> ReferenceRange:
+def get_reference_range(rl: list) -> ReferenceRange:
+    assert 1 == len(rl)
+    r = rl[0]
+    assert 3 == len(r)
     if "low" in r:
-        low = get_value_quantity(r["low"])
-        high = get_value_quantity(r["high"])
+        low = get_value_quantity(r["low"], "low")
+        high = get_value_quantity(r["high"], "high")
     else:
         low = None
         high = None
