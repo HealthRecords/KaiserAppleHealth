@@ -141,7 +141,7 @@ def get_reference_range(rl: list) -> ReferenceRange:
     text = r['text']
     return ReferenceRange(low, high, text)
 
-def extract_value_helper(filename: str, condition: dict, category_name, sign_name) -> Optional[Observation]:
+def extract_value_helper(*, filename: str, condition: dict, category_name, sign_name) -> Optional[Observation]:
     """
 
     :param filename: Just for printing error messages
@@ -169,8 +169,9 @@ def extract_value_helper(filename: str, condition: dict, category_name, sign_nam
             vq = ValueQuantity(v, u, sign_name)
             if "referenceRange" in condition:
                 rr = get_reference_range(condition["referenceRange"])
-
-            return Observation(t, d, [vq], reference_range)
+            else:
+                rr = None
+            return Observation(t, d, [vq], rr)
 
         elif "component" in condition:
             sub_values = []
@@ -198,49 +199,11 @@ def extract_value(file: str, sign_name: str, *, category_name) -> Observation | 
     :param file:
     :param sign_name:
     :param category_name:
-    :return:
+    :return: Optional[Observation
     """
     with open(file) as f:
         condition = json.load(f)
-        category_info = condition['category']
-        assert isinstance(category_info, list)
-        for ci in category_info:
-            if ci['text'] == category_name:
-                if condition['code']['text'] == sign_name:
-                    t = sign_name
-                    d = condition['effectiveDateTime']
-                    # It turns out that blood pressure, which has two values, like 144/100,
-                    # has a slightly different format. First find "component", then each has
-                    # its own "valueQuantity"
-                    if "valueQuantity" in condition:
-                        v = condition["valueQuantity"]["value"]
-                        u = condition["valueQuantity"]["unit"]
-                        v, u = convert_units(v, u)
-                        vq = ValueQuantity(v, u, sign_name)
-                        if "referenceRange" in condition:
-                            if "low" in condition["referenceRange"]:
-                                reference_range = None
-                        return Observation(t, d, [vq], reference_range)
-
-                    elif "component" in condition:
-                        sub_values = []
-                        for component in condition["component"]:
-                            val = component["valueQuantity"]["value"]
-                            unit = component["valueQuantity"]["unit"]
-                            text = component["code"]["text"]
-                            val, unit = convert_units(val, unit)
-                            vq = ValueQuantity(val, unit, text)
-
-                            sub_values.append(vq)
-                            reference_range = None
-                        return Observation(t, d, sub_values)
-                    elif "valueString" in condition:
-                        val = condition["valueString"]
-                        print(F"Found a string value of {val}")
-                        return None
-                    else:
-                        print(F"*** No value found in {file} ***")
-    return None
+    return extract_value_helper(filename=file, condition=condition, category_name=category_name, sign_name=sign_name)
 
 def yield_observation_files(dir_path: Path) -> Iterable[str]:
     for p in dir_path.glob("Observation*.json"):

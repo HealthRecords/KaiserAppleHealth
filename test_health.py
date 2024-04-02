@@ -59,6 +59,7 @@ class Test(TestCase):
         self.assertTrue(isinstance(rr_info, list))
         self.assertEqual(1, len(rr_info))
         rr = get_reference_range(rr_info)
+
         self.assertEqual(140, rr.low.value)
         self.assertEqual("K/uL", rr.low.unit)
         self.assertEqual("low", rr.low.name)
@@ -66,6 +67,13 @@ class Test(TestCase):
         self.assertEqual(400, rr.high.value)
         self.assertEqual("K/uL", rr.high.unit)
         self.assertEqual("high", rr.high.name)
+
+        l, h = rr.get_range()
+        self.assertEqual(140, l.value)
+        self.assertEqual(400, h.value)
+        self.assertEqual("high", rr.high.name)
+
+        self.assertEqual("140 - 400 K/uL", rr.text)
 
 
 
