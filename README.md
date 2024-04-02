@@ -6,7 +6,7 @@ This repository shows how I am exploring my downloaded Apple Health and Kaiser m
 I am not medically trained, and have no documentation on the file format. This code is NOT for making medical decisions. There may be missing data and actual errors. I recommend discussing anything interesting you find with your doctor.
 
 ## Why?
-My initial goal is to graph my weight and blood-pressure over time. Kaiser's app allows you to graph test results, 
+My initial goal was to graph my weight and blood-pressure over time. Kaiser's app allows you to graph test results, 
 but I have not found a way to graph vital signs recorded over time. You can look at each record, one at a time, 
 but who wants to do that?
 So, this tool will now graph any Kaiser test results (at least in formats I have seen), including those, like 
@@ -29,6 +29,26 @@ All of the above should be possible without an iPhone, but that's how I did it.
 I'm using Kaiser Northern California. I believe this will work with other Kaiser groups, but I have not tested it. 
 
 I believe this data format may be a [standard format](https://www.healthit.gov/faq/what-are-differences-between-electronic-medical-records-electronic-health-records-and-personal), so this code may work with more than just Kaiser.
+
+# Files
+When I expand the zip I get this directory structure:
+
+```
+./apple_health_export
+./apple_health_export/workout-routes
+./apple_health_export/clinical-records
+./apple_health_export/electrocardiograms
+```
+Kaiser and presumably other third party provider's data is in .json files
+in the clinical-records directory. I have seen this being thousands of files.
+Each time the check your blood pressure, or weight, that's a separate file.
+
+The Apple Health data is in the files export.xml and export_cda.xml files.
+This may have hundreds of thousands of records, or probably more. 
+
+Currently, the fastest way to explore this is the run the text_ui.py 
+command line tool, as it examines the directories to see what files exist. 
+
 
 # Running the Code
 This is currently a set of command-line applications. If you want a nice GUI, try one of the alternatives listed below.
