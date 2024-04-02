@@ -542,6 +542,7 @@ def plot(dates, values: list[float], values2: list[float], graph_subject, data_n
     plt.ylabel(graph_subject)
     plt.grid(True)
     plt.tight_layout()
+    plt.ylim(0, max(values))
 
     plt.show()
 
