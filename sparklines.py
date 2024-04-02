@@ -9,6 +9,8 @@ you can use a fixed value for the upper and lower limit of the value.True
 Need to figure out how to scale each sparkline separately
 could also maybe use pygal, which sounds cool. But let's use matplotlib for now.
 
+TODO: Need to match the date range across all sparklines, if I'm going to line them up.
+
 TODO: My current plan is to make this the main program for generating sparklines, and have it call health.py functions
       to acquire the data to plot.
       First step, make this work on list[Observation]. Observation may need to me modified to include normal ranges.
@@ -26,10 +28,10 @@ from matplotlib import pyplot as plt
 from health import extract_all_values, yield_observation_files, Observation
 import matplotlib.dates as mdates
 
-def sparkline(data_x_str: list[datetime], data_y: list[float], min_normal, max_normal):
+def sparkline(data_x_str: list[str], data_y: list[float], min_normal, max_normal):
     data_x = [datetime.strptime(date, '%Y-%m-%dT%H:%M:%SZ') for date in data_x_str]
 
-    fig, axes = plt.subplots(1, 1, figsize=(10, 10))
+    fig, axes = plt.subplots(1, 1, figsize=(4, 1))
     # axes.axis('off')
     plt.axhspan(min_normal, max_normal, color='green', alpha=0.3)
     axes.plot(data_x, data_y)
@@ -47,34 +49,24 @@ def sparkline(data_x_str: list[datetime], data_y: list[float], min_normal, max_n
     # fig.show()
     return '<img src="data:image/png;base64,{}"/>'.format(base64.b64encode(img.read()).decode())
 
-def sparklines(incoming: list[list[Observation]]) -> list[str]:
+def sparklines(incoming: list[list[Observation]]) -> list[tuple[str, str]]:
     """
     todo we need to pass in x and y
     :param incoming:
     :return:
     """
-    # data1 = [x*x for x in range(30)]
-    # d1_min = 0.3 *(max(data1) - min(data1))
-    # d1_max = 0.8 *(max(data1) - min(data1))
-    # data2 = [x*x*x for x in range(30)]
-    # d2_min = 0.5 *(max(data2) - min(data2))
-    # d2_max = 0.65 *(max(data2) - min(data2))
-    # data3 = [x for x in range(30)]
-    # d3_min = 0.2 *(max(data3) - min(data3))
-    # d3_max = 0.45 *(max(data3) - min(data3))
-    #
-    # x = sparkline(data1, d1_min, d1_max)
-    # y = sparkline(data2, d2_min, d2_max)
-    # z = sparkline(data3,  d3_min, d3_max)
     outgoing = []
     for index in range(0, len(incoming)):
         one_ob_list = incoming[index]
+        if len(one_ob_list) == 0:
+            continue
+
         data_x = [x.date for x in one_ob_list]
         data_y = [x.data[0].value for x in one_ob_list]
-        d1_min = 0.3 * (max(data_y) - min(data_y))
+        d1_min = 0.3 * (max(data_y) - min(data_y))  # TODO: We need to get this from referenceRange
         d1_max = 0.8 * (max(data_y) - min(data_y))
-        x = sparkline(data_x, data_y, d1_min, d1_max)
-        outgoing.append(x)
+        img_info = sparkline(data_x, data_y, d1_min, d1_max)
+        outgoing.append((img_info, one_ob_list[0].name))
 
     return outgoing
 
@@ -83,16 +75,23 @@ def html_page(f: TextIO, incoming):
     print("""<!DOCTYPE html><html><head><meta charset="utf-8" /><body>""", file=f)
     print("<h1>Sparklines</H1>", file=f)
     sparks = sparklines(incoming)
-    for imgtag in sparks:
+    for imgtag, stat_name in sparks:
+        print(F"""<h1>{stat_name}</h1>""", file=f)
         print(imgtag, file=f)
+        print("<br>\n", file=f)
     print("""</body></html>""", file=f)
 
 if __name__ == "__main__":
     base = Path("export/apple_health_export")
     condition_path = base / "clinical-records"
-    vital='Weight'
+
+    stats = ["Pulse", "Height", "Blood Pressure", "Weight", "Respirations", "SpO2", "Temperature"]
     category_name = 'Vital Signs'
-    ws = extract_all_values(yield_observation_files(condition_path), vital, category_name=category_name)
+
+    stats_to_graph = []
+    for vital in stats:
+        ws = extract_all_values(yield_observation_files(condition_path), vital, category_name=category_name)
+        stats_to_graph.append(ws)
 
     with open("sparklines.html", "w") as fff:
-        html_page(fff, [ws])
+        html_page(fff, stats_to_graph)
