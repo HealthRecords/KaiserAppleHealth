@@ -16,7 +16,6 @@ TODO: I need normal range for every test we want to plot (I guess it's not requi
       as referenceRange. It's in 2707 out of 4541 files.
 """
 import base64
-from dataclasses import dataclass
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
@@ -33,8 +32,12 @@ def sparkline(data_x_str: list[str], data_y: list[float], graph_y_min, graph_y_m
 
     fig, axes = plt.subplots(1, 1, figsize=(4, 1))
     # axes.axis('off')
-    plt.axhspan(normal_min, normal_max, color='green', alpha=0.3)
-    axes.set_ylim([graph_y_min, graph_y_max])
+    if normal_max is not None:
+        assert normal_min is not None
+        plt.axhspan(normal_min, normal_max, color='green', alpha=0.3)
+    else:
+        normal_max = graph_y_max
+    axes.set_ylim([graph_y_min, max(graph_y_max, normal_max)])
     axes.plot(data_x, data_y)
 
     # Calculate major ticks for x-axis
@@ -62,15 +65,19 @@ def sparklines(incoming: list[list[Observation]]) -> list[tuple[str, str]]:
 
         data_x = [x.date for x in one_ob_list]
         data_y = [x.data[0].value for x in one_ob_list]  # TODO handle blood pressure and other multi-values stats.
-        BASELINE_ZERO = True
-        if BASELINE_ZERO:
-            normal_min = 0.3 * (max(data_y))  # TODO: We need to get this from referenceRange
-            normal_max = 0.8 * (max(data_y))
+        if one_ob_list[0].range is not None:
+            range_ = {x.range.low.value for x in one_ob_list}
+            assert len(range_) == 1
+            normal_min = one_ob_list[0].range.low.value
+            normal_max = one_ob_list[0].range.high.value
+        else:
+            normal_min = None
+            normal_max = None
+        baseline_at_zero = True
+        if baseline_at_zero:
             baseline = 0
         else:
-            normal_min = 0.3 * (max(data_y) - min(data_y))  # TODO: We need to get this from referenceRange
-            normal_max = 0.8 * (max(data_y) - min(data_y))
-            baseline = normal_min
+            baseline = min(data_y)
         graph_y_min = 0
         graph_y_max = max(data_y)
         img_info = sparkline(data_x, data_y, graph_y_min, graph_y_max, normal_min, normal_max)
@@ -107,8 +114,18 @@ if __name__ == "__main__":
 
     # stats = ["Pulse", "Height", "Blood Pressure", "Weight", "Respirations", "SpO2", "Temperature"]
     # stats = ["SpO2"]
-    stats = [StatInfo("Lab", "Potassium"), StatInfo("Vital Signs", "SpO2")]
-    # stats = [StatInfo("Vital Signs", "SpO2")]
+    stats = [
+        StatInfo("Lab", "Potassium"),
+        StatInfo("Lab", "Bilirubin, total"),
+        StatInfo("Vital Signs", "SpO2"),
+        StatInfo("Vital Signs", "Pulse"),
+        StatInfo("Vital Signs", "Height"),
+        StatInfo("Vital Signs", "Blood Pressure"),
+        StatInfo("Vital Signs", "Weight"),
+        StatInfo("Vital Signs", "Respirations"),
+        StatInfo("Vital Signs", "SpO2"),
+        StatInfo("Vital Signs", "Temperature")
+    ]
     # category_name = 'Vital Signs'
 
     stats_to_graph = []
