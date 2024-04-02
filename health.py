@@ -19,6 +19,8 @@ from collections import Counter
 # TODO Should be able to graph anything with a value quantity and a date. This is only observations, at least
 #      in my data. Need to handle string values for Observations
 # TODO Add sparklines to graph multiple items on one page. Probably HTML page.
+# TODO I think I currently read ALL Observation files, whether I want one or all of them.
+#       And when I need multiple stats, I read them multiple times. Optimize.
 
 
 @dataclass
