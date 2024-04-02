@@ -20,6 +20,13 @@ from collections import Counter
 #      in my data. Need to handle string values for Observations
 # TODO Add sparklines to graph multiple items on one page. Probably HTML page.
 
+
+@dataclass
+class StatInfo:
+    category_name: str
+    name: str
+
+
 @dataclass
 class ValueQuantity:
     """
@@ -141,15 +148,17 @@ def get_reference_range(rl: list) -> ReferenceRange:
     text = r['text']
     return ReferenceRange(low, high, text)
 
-def extract_value_helper(*, filename: str, condition: dict, category_name, sign_name) -> Optional[Observation]:
+def extract_value_helper(*, filename: str, condition: dict, stat_info) -> Optional[Observation]:
     """
 
     :param filename: Just for printing error messages
     :param condition: Could be a condition, an observation, etc. The contents of the file we are parsing now.
-    :param category_name: Filtering to this category, like "lab"
-    :param sign_name:  The name of the vital sign we are looking for
+    :param stat_info: contains
+        category_name: Filtering to this category, like "lab" or "Vital Sign"
+        name:  The name of the stat / vital sign we are looking for
     :return:
     """
+    category_name, sign_name = stat_info.category_name, stat_info.name
     category_info = condition['category']
     assert isinstance(category_info, list)
     for ci in category_info:
@@ -193,17 +202,16 @@ def extract_value_helper(*, filename: str, condition: dict, category_name, sign_
             print(F"*** No value found in {filename} ***")
     return None
 
-def extract_value(file: str, sign_name: str, *, category_name) -> Observation | None:
+def extract_value(file: str, stat_info) -> Observation | None:
     """
     Processes one file and extracts the value of a vital sign or other test, from it.
     :param file:
-    :param sign_name:
-    :param category_name:
+    :param stat_info: contains the sign_name ("Spo2") and the category, like "Lab"
     :return: Optional[Observation
     """
     with open(file) as f:
         condition = json.load(f)
-    return extract_value_helper(filename=file, condition=condition, category_name=category_name, sign_name=sign_name)
+    return extract_value_helper(filename=file, condition=condition, stat_info=stat_info)
 
 def yield_observation_files(dir_path: Path) -> Iterable[str]:
     for p in dir_path.glob("Observation*.json"):
@@ -225,18 +233,18 @@ def filter_category(observation_files: Iterable[str], category: str) -> Iterable
                 if ci['text'] == category:
                     yield observation
 
-def extract_all_values(observation_files: Iterable[str], sign_name: str, *, category_name) -> list[Observation]:
+def extract_all_values(observation_files: Iterable[str], *, stat_info: StatInfo) -> list[Observation]:
     """
-
+sign_name: str, *, category_name
     :param observation_files: iterable of files to read. Only Obser
-    :param sign_name:  The name of the vital sign we want data for. (now, this is a code, within a category,
-                       not just "Vital Signs")
-    :param category_name: Like "Vital Signs". It appears that all "Observation*.json" file have a category.
+    :param stat_info: contains
+        category_name: Filtering to this category, like "lab" or "Vital Sign"
+        name:  The name of the stat / vital sign we are looking for
     :return: Instance of class Observation or None
     """
     values = []
     for p in observation_files:
-        value = extract_value(p, sign_name, category_name=category_name)
+        value = extract_value(p, stat_info)
         if value is not None:
             values.append(value)
     values = sorted(values, key=lambda x: x.date)
@@ -552,7 +560,7 @@ def do_vital(condition_path: Path, vital: str, after: str, print_data: bool, vpl
         print("You need to select at least one of --plot or --print with --stat")
         return
 
-    ws = extract_all_values(yield_observation_files(condition_path), vital, category_name=category_name)
+    ws = extract_all_values(yield_observation_files(condition_path), stat_info=StatInfo(vital, category_name))
 
     if after:
         ad = datetime.strptime(after, '%Y-%m-%d')

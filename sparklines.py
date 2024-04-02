@@ -16,6 +16,7 @@ TODO: I need normal range for every test we want to plot (I guess it's not requi
       as referenceRange. It's in 2707 out of 4541 files.
 """
 import base64
+from dataclasses import dataclass
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
@@ -24,7 +25,8 @@ from typing import TextIO
 from matplotlib import pyplot as plt
 import matplotlib.dates as mdates
 
-from health import extract_all_values, yield_observation_files, Observation
+from health import extract_all_values, yield_observation_files, Observation, StatInfo
+
 
 def sparkline(data_x_str: list[str], data_y: list[float], graph_y_min, graph_y_max, normal_min, normal_max):
     data_x = [datetime.strptime(date, '%Y-%m-%dT%H:%M:%SZ') for date in data_x_str]
@@ -103,13 +105,15 @@ if __name__ == "__main__":
     base = Path("export/apple_health_export")
     condition_path = base / "clinical-records"
 
-    stats = ["Pulse", "Height", "Blood Pressure", "Weight", "Respirations", "SpO2", "Temperature"]
-    # stats = ["Height"]
-    category_name = 'Vital Signs'
+    # stats = ["Pulse", "Height", "Blood Pressure", "Weight", "Respirations", "SpO2", "Temperature"]
+    # stats = ["SpO2"]
+    stats = [StatInfo("Lab", "Potassium"), StatInfo("Vital Signs", "SpO2")]
+    # stats = [StatInfo("Vital Signs", "SpO2")]
+    # category_name = 'Vital Signs'
 
     stats_to_graph = []
     for vital in stats:
-        ws = extract_all_values(yield_observation_files(condition_path), vital, category_name=category_name)
+        ws = extract_all_values(yield_observation_files(condition_path), stat_info=vital)
         stats_to_graph.append(ws)
 
     with open("sparklines.html", "w") as fff:
