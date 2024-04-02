@@ -1,6 +1,7 @@
+import json
 from pathlib import Path
 from unittest import TestCase
-from health import extract_value, list_vitals, list_prefixes, list_categories
+from health import extract_value, list_vitals, list_prefixes, list_categories, get_value_quantity
 
 
 class Test(TestCase):
@@ -23,13 +24,13 @@ class Test(TestCase):
         self.assertTrue("Blood Pressure" in vitals)
 
     def test_list_prefixes(self):
-        vitals = list_prefixes(Path("test_data"))
+        vitals = list_prefixes(Path("test_data/list_prefixes_test_dir"))
         self.assertEqual(2, len(vitals))
         self.assertEqual(2, vitals["Observation"])
         self.assertEqual(1, vitals["MedicationRequest"])
 
     def test_categories(self):
-        category_list, category_counter, count = list_categories(Path("test_data"), False, one_prefix=None)
+        category_list, category_counter, count = list_categories(Path("test_data/list_prefixes_test_dir"), False, one_prefix=None)
         self.assertEqual(2, len(category_list))
         self.assertEqual(1, category_counter["Community"])
         self.assertEqual(2, category_counter["Vital Signs"])
@@ -38,3 +39,21 @@ class Test(TestCase):
         self.assertEqual(1, len(category_list))
         self.assertFalse("Community" in category_counter)
         self.assertEqual(2, category_counter["Vital Signs"])
+
+    def test_get_value_quantity(self):
+        test_file = "test_data/ref_range.json"
+        with open(test_file) as f:
+            condition = json.load(f)
+        v = condition["valueQuantity"]
+        self.assertTrue(isinstance(v, dict))
+        self.assertEqual(4, len(v))
+        vq = get_value_quantity(v, "test")
+        self.assertEqual('test', vq.name)
+
+    def test_get_reference_range(self):
+        test_file = "test_data/ref_range.json"
+        pass
+
+
+
+

@@ -1,0 +1,54 @@
+{
+  "id" : "1",
+  "category" : [
+    {
+      "text" : "Laboratory",
+      "coding" : [
+        {
+          "system" : "http://terminology.hl7.org/CodeSystem/observation-category",
+          "display" : "Laboratory",
+          "code" : "laboratory"
+        }
+      ]
+    },
+    {
+      "text" : "Lab",
+      "coding" : [
+        {
+          "system" : "urn:oid:1.2.840.114350.1.13.119.2.7.10.798268.30",
+          "display" : "Lab",
+          "code" : "Lab"
+        }
+      ]
+    }
+  ],
+  "subject" : {
+    "display" : "Smith, John",
+    "reference" : "Patient/3"
+  },
+  "referenceRange" : [
+    {
+      "low" : {
+        "code" : "K/uL",
+        "value" : 140,
+        "system" : "http://unitsofmeasure.org",
+        "unit" : "K/uL"
+      },
+      "high" : {
+        "code" : "K/uL",
+        "value" : 400,
+        "system" : "http://unitsofmeasure.org",
+        "unit" : "K/uL"
+      },
+      "text" : "140 - 400 K/uL"
+    }
+  ],
+  "valueQuantity" : {
+    "code" : "K/uL",
+    "value" : 523,
+    "system" : "http://unitsofmeasure.org",
+    "unit" : "K/uL"
+  },
+  "status" : "final",
+  "issued" : "2023-07-25T00:05:42Z"
+}

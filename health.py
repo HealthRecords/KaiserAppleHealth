@@ -1,9 +1,9 @@
-#writing min/max/avg function right now. Need to handle BP for this.
+# writing min/max/avg function right now. Need to handle BP for this.
 import glob
 import json
 from io import StringIO
 from pathlib import Path
-from typing import NoReturn, Iterable
+from typing import NoReturn, Iterable, Optional
 import argparse
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from collections import Counter
 
 
+# TODO There are two observations classes, in health.py and xml_reader.py. Should combine them.
 # TODO print_condition and print_medicines should be generalized and combined.
 # TODO Do we want to have an option to process multiple or all stats in one run?
 # TODO Should be able to graph anything with a value quantity and a date. This is only observations, at least
@@ -26,12 +27,15 @@ class ValueQuantity:
 
     We are combining two objects from the documentation.
 
+    "referenceRange" seems to use the same schema as valueQuantity, once for min and once for max, so we'll
+    use valueQuantity for this as well.
+
     For Observations with a single value, the Observation contains one valueQuantity object.
-    For Observations with multiple values, there is a "component", which contains a valueObject and "code" with a name
-     for each individual value.
+    For Observations with multiple values, like blood pressure, there is a "component", which contains a valueObject
+    and "code" with a name for each individual value.
     a name field (single valued fields use the category text).
 
-    We ignore system, and the duplicate name.
+    We ignore system, and the duplication with "code" and "unit".
 
     "valueQuantity" : {
         "code" : "mg/dL",
@@ -44,6 +48,58 @@ class ValueQuantity:
     unit: str
     name: str
 
+
+@dataclass
+class ReferenceRange:
+    """
+    The normal or "referenceRange" from the Observation file.
+
+    "referenceRange" : [
+    {
+        "low" : {
+            "code" : "K/uL",
+            "value" : 140,
+            "system" : "http://unitsofmeasure.org",
+            "unit" : "K/uL"
+        },
+        "high" : {
+            "code" : "K/uL",
+            "value" : 400,
+            "system" : "http://unitsofmeasure.org",
+            "unit" : "K/uL"
+        },
+        "text" : "140 - 400 K/uL"
+    }
+    ],
+
+    But there are about 10% that don't have explicit or any numeric values:
+        [{"text":"<=1.34"}]
+        [{"text":"<=0"}]
+        [{"text":"---"}]
+        [{"text":"NEGATIVE"}]
+        [{"text":"YELLOW"}]
+        [{"text":"ABSENT"}]
+        [{"text":"CLEAR"}]
+        [{"text":"NEGATIVE"}]
+        [{"text":"NON REAC"}]
+        [{"text":"NORMAL"}]
+
+    The "<" or "<=" could be parsed, and are the most common format. Odd, and annoying that they have something that
+    could be expressed with "low" and "high", but aren't.
+    """
+    low: Optional[ValueQuantity]
+    high: Optional[ValueQuantity]
+    text: str
+    def get_range(self):
+        """
+        we need to have get range, because we can try to extract the range from the text field, if there
+        are not an explicit low and high.
+        :return: low: float, high: float
+        """
+        if self.low is not None:
+            return self.low, self.high
+        return None  # TODO extract from text field, where possible.
+
 @dataclass
 class Observation:
     """
@@ -52,6 +108,7 @@ class Observation:
     name: str
     date: str
     data: list[ValueQuantity]
+    range: Optional[ReferenceRange] = None
 
 
 def convert_units(v, u):
@@ -64,7 +121,82 @@ def convert_units(v, u):
         u = "Fah"
     return v, u
 
+def get_value_quantity(val: dict, test_name) -> ValueQuantity:
+    v = val["value"]
+    u = val["unit"]
+    v, u = convert_units(v, u)
+    vq = ValueQuantity(v, u, test_name)
+    return vq
+
+def get_reference_range(r:dict) -> ReferenceRange:
+    if "low" in r:
+        low = get_value_quantity(r["low"])
+        high = get_value_quantity(r["high"])
+    else:
+        low = None
+        high = None
+    text = r['text']
+    return ReferenceRange(low, high, text)
+
+def extract_value_helper(filename: str, condition: dict, category_name, sign_name) -> Optional[Observation]:
+    """
+
+    :param filename: Just for printing error messages
+    :param condition: Could be a condition, an observation, etc. The contents of the file we are parsing now.
+    :param category_name: Filtering to this category, like "lab"
+    :param sign_name:  The name of the vital sign we are looking for
+    :return:
+    """
+    category_info = condition['category']
+    assert isinstance(category_info, list)
+    for ci in category_info:
+        if ci['text'] != category_name:
+            continue
+        if condition['code']['text'] != sign_name:
+            continue
+        t = sign_name
+        d = condition['effectiveDateTime']
+        # It turns out that blood pressure, which has two values, like 144/100,
+        # has a slightly different format. First find "component", then each has
+        # its own "valueQuantity"
+        if "valueQuantity" in condition:
+            v = condition["valueQuantity"]["value"]
+            u = condition["valueQuantity"]["unit"]
+            v, u = convert_units(v, u)
+            vq = ValueQuantity(v, u, sign_name)
+            if "referenceRange" in condition:
+                rr = get_reference_range(condition["referenceRange"])
+
+            return Observation(t, d, [vq], reference_range)
+
+        elif "component" in condition:
+            sub_values = []
+            for component in condition["component"]:
+                val = component["valueQuantity"]["value"]
+                unit = component["valueQuantity"]["unit"]
+                text = component["code"]["text"]
+                val, unit = convert_units(val, unit)
+                vq = ValueQuantity(val, unit, text)
+
+                sub_values.append(vq)
+                reference_range = None
+            return Observation(t, d, sub_values)
+        elif "valueString" in condition:
+            val = condition["valueString"]
+            print(F"Found a string value of {val}")
+            return None
+        else:
+            print(F"*** No value found in {filename} ***")
+    return None
+
 def extract_value(file: str, sign_name: str, *, category_name) -> Observation | None:
+    """
+    Processes one file and extracts the value of a vital sign or other test, from it.
+    :param file:
+    :param sign_name:
+    :param category_name:
+    :return:
+    """
     with open(file) as f:
         condition = json.load(f)
         category_info = condition['category']
@@ -82,7 +214,10 @@ def extract_value(file: str, sign_name: str, *, category_name) -> Observation | 
                         u = condition["valueQuantity"]["unit"]
                         v, u = convert_units(v, u)
                         vq = ValueQuantity(v, u, sign_name)
-                        return Observation(t, d, [vq])
+                        if "referenceRange" in condition:
+                            if "low" in condition["referenceRange"]:
+                                reference_range = None
+                        return Observation(t, d, [vq], reference_range)
 
                     elif "component" in condition:
                         sub_values = []
@@ -94,6 +229,7 @@ def extract_value(file: str, sign_name: str, *, category_name) -> Observation | 
                             vq = ValueQuantity(val, unit, text)
 
                             sub_values.append(vq)
+                            reference_range = None
                         return Observation(t, d, sub_values)
                     elif "valueString" in condition:
                         val = condition["valueString"]
@@ -127,9 +263,9 @@ def extract_all_values(observation_files: Iterable[str], sign_name: str, *, cate
     """
 
     :param observation_files: iterable of files to read. Only Obser
-    :param sign_name:  The name of the vital sign we want data for. (now, this is a code, within any category,
+    :param sign_name:  The name of the vital sign we want data for. (now, this is a code, within a category,
                        not just "Vital Signs")
-    :category_name: Like "Vital Signs". It appears that all "Observation*.json" file have a category.
+    :param category_name: Like "Vital Signs". It appears that all "Observation*.json" file have a category.
     :return: Instance of class Observation or None
     """
     values = []

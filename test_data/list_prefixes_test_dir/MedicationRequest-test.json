@@ -1,0 +1,156 @@
+{
+  "id" : "ABCD",
+  "category" : [
+    {
+      "text" : "Community",
+      "coding" : [
+        {
+          "system" : "http://terminology.hl7.org/CodeSystem/medicationrequest-category",
+          "display" : "Community",
+          "code" : "community"
+        }
+      ]
+    }
+  ],
+  "subject" : {
+    "display" : "Last, First",
+    "reference" : "Patient/ABCID"
+  },
+  "encounter" : {
+    "display" : "Video Visit"
+  },
+  "reasonCode" : [
+    {
+      "text" : "THIS IS THE PROBLEM"
+    }
+  ],
+  "resourceType" : "MedicationRequest",
+  "medicationReference" : {
+    "display" : "Cephalexin 500 mg Cap",
+    "reference" : "Medication/ABCDEFG"
+  },
+  "contained" : [
+    {
+      "code" : {
+        "text" : "DRUG_NAME 500 mg Cap"
+      },
+      "id" : "eyAuU-.rNOnXORp4ZYhTF9fIYRqy2QC-Wadks-LdXCmL52qV2zS15b0ZSVF-mctcpgsc6n37y7C9-WK3DkvWIakW7QaqmdZf9VbwTVwA.Gxs3",
+      "resourceType" : "Medication",
+      "form" : {
+        "text" : "Capsule",
+        "coding" : [
+          {
+            "system" : "urn:oid:1.2.840.114350.1.13.119.2.7.4.698288.310",
+            "display" : "Capsule",
+            "code" : "Cap"
+          }
+        ]
+      },
+      "ingredient" : [
+        {
+          "strength" : {
+            "numerator" : {
+              "value" : 500,
+              "system" : "http://unitsofmeasure.org",
+              "code" : "mg"
+            },
+            "denominator" : {
+              "value" : 500,
+              "system" : "http://unitsofmeasure.org",
+              "code" : "mg"
+            }
+          },
+          "itemCodeableConcept" : {
+            "text" : "Cephalexin 500 mg Cap",
+            "coding" : [
+              {
+                "system" : "urn:oid:2.16.840.1.113883.6.208",
+                "code" : "9043"
+              },
+              {
+                "system" : "http://www.nlm.nih.gov/research/umls/rxnorm",
+                "code" : "2231"
+              },
+              {
+                "system" : "http://www.nlm.nih.gov/research/umls/rxnorm",
+                "code" : "108805"
+              },
+              {
+                "system" : "http://www.nlm.nih.gov/research/umls/rxnorm",
+                "code" : "152411"
+              },
+              {
+                "system" : "http://www.nlm.nih.gov/research/umls/rxnorm",
+                "code" : "152655"
+              },
+              {
+                "system" : "http://www.nlm.nih.gov/research/umls/rxnorm",
+                "code" : "203167"
+              },
+              {
+                "system" : "http://www.nlm.nih.gov/research/umls/rxnorm",
+                "code" : "212338"
+              },
+              {
+                "system" : "http://www.nlm.nih.gov/research/umls/rxnorm",
+                "code" : "212339"
+              },
+              {
+                "system" : "http://www.nlm.nih.gov/research/umls/rxnorm",
+                "code" : "212340"
+              },
+              {
+                "system" : "http://www.nlm.nih.gov/research/umls/rxnorm",
+                "code" : "215682"
+              },
+              {
+                "system" : "http://www.nlm.nih.gov/research/umls/rxnorm",
+                "code" : "215948"
+              },
+              {
+                "system" : "http://www.nlm.nih.gov/research/umls/rxnorm",
+                "code" : "216845"
+              },
+              {
+                "system" : "http://www.nlm.nih.gov/research/umls/rxnorm",
+                "code" : "217892"
+              },
+              {
+                "system" : "http://www.nlm.nih.gov/research/umls/rxnorm",
+                "code" : "221000"
+              },
+              {
+                "system" : "http://www.nlm.nih.gov/research/umls/rxnorm",
+                "code" : "225529"
+              },
+              {
+                "system" : "http://www.nlm.nih.gov/research/umls/rxnorm",
+                "code" : "309114"
+              },
+              {
+                "system" : "http://www.nlm.nih.gov/research/umls/rxnorm",
+                "code" : "541053"
+              },
+              {
+                "system" : "http://www.nlm.nih.gov/research/umls/rxnorm",
+                "code" : "1867692"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "intent" : "order",
+  "courseOfTherapyType" : {
+    "text" : "Short course (acute) therapy",
+    "coding" : [
+      {
+        "system" : "http://terminology.hl7.org/CodeSystem/medicationrequest-course-of-therapy",
+        "display" : "Short course (acute) therapy",
+        "code" : "acute"
+      }
+    ]
+  },
+  "status" : "completed"
+}
