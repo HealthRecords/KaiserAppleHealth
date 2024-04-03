@@ -32,17 +32,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from collections import Counter
 from math import log10
-
-
-@dataclass
-class Observation:
-    name: str
-    value: str
-    unit: str
-    sourceName: str
-
-    def __init__(self, name: str):
-        self.name = name
+from health import Observation
 
 
 def find(stack: list[str], target: list[str]) -> bool:

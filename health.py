@@ -161,8 +161,8 @@ class Observation:
     This holds data from one file, which records an observation, such as height or blood pressure.
     """
     name: str
-    date: str
-    data: list[ValueQuantity]
+    date: str = None
+    data: list[ValueQuantity] = None
     range: Optional[ReferenceRange] = None
     filename: Path = None
 
