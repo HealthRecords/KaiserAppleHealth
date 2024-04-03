@@ -22,17 +22,17 @@ from dataclasses import dataclass
 from collections import Counter
 
 
-# TODO There are two observations classes, one in health.py and one in xml_reader.py. Should combine them.
+# TODO Split this file into UI code, and library code. We already have text_ui, and xml_reader which use this file.
 # TODO print_condition and print_medicines should be generalized and combined.
 # TODO Do we want to have an option to process multiple or all stats in one run?
 # TODO Should be able to graph anything with a value quantity and a date. This is only observations, at least
 #      in my data. Need to handle string values for Observations
-# TODO Add sparklines to graph multiple items on one page. Probably HTML page.
-# TODO When getting multiple stats, I reread ALL the observation files for each stat. Optimize
-# TODO I don't currently handle the difference between < and <= on reference ranges. And I'm assuming that <10, means
-#     zero to ten, not negative infinity to ten
+# TODO When getting multiple stats, I reread ALL the observation files for each stat. Optimize.
+# TODO I don't currently handle the difference between < and <= on reference ranges. Is there really a difference?
 # TODO New format for valueQuantity, see ValueQuantity doc string
 # TODO Some data appears to be missing from my download (PSA).
+# TODO Check single ended string referenceRanges, like "<50". How well does that graph? I treat this as
+#       -sys.maxsize < X < 50
 
 
 @dataclass
@@ -65,7 +65,7 @@ class ValueQuantity:
         "unit" : "mg/dL"
     },
 
-    Just found:
+    Just found, this, and don't handle it yet. I think this current will just be treated like a value of 60. TODO
     "valueQuantity" : {
         "code" : "mL/min",
         "value" : 60,
@@ -552,8 +552,12 @@ def parse_args():
                         help='List all active medicines that were found.')
     parser.add_argument('--plot',  action=argparse.BooleanOptionalAction,
                         help='Plots the vital statistic selected with --stat.')
+    parser.add_argument('--procedures', action=argparse.BooleanOptionalAction,
+                        help='Prints the procedures found.')
     parser.add_argument('--print', action=argparse.BooleanOptionalAction,
                         help='Prints the vital statistic selected with --stat.')
+    parser.add_argument('--source', type=str,
+                        help='Sets the source directory for the data.', default="export/apple_health_export")
     parser.add_argument('-s', '--stat', type=str,
         help='Print a vital statistic, like weight. Name has to match EXACTLY, ' +
             'Weight" is not "weight".\nSome examples:\n' +
@@ -561,8 +565,8 @@ def parse_args():
             'use the -l to get a list of stats found in your data.')
     args = parser.parse_args()
     active = [args.allergy, args.conditions, args.document_types, args.list_vitals, args.medicines, args.medicines_all,
-              args.categories, args.stat, args.generic]
-    flags = ["-a", "-c", "-d", "-l", "-m", "--medicines-all", "--categories", "-s", "-g"]
+              args.categories, args.stat, args.generic, args.procedures]
+    flags = ["-a", "-c", "-d", "-l", "-m", "--medicines-all", "--categories", "-s", "-g", "--procedures"]
     return args, active, flags
 
 def plot(dates, values: list[float], values2: list[float], graph_subject, data_name_1, data_name_2) -> None:
@@ -660,6 +664,7 @@ def do_vital(condition_path: Path, vital: str, after: str, print_data: bool, vpl
 def go():
     args, active, flags = parse_args()
     base = Path("export/apple_health_export")
+    base = Path(args.source)
     condition_path = base / "clinical-records"
 
     if not any(active):
@@ -671,6 +676,9 @@ def go():
 
     if args.allergy:
         print_conditions(condition_path, args.csv_format, "All*.json")
+
+    if args.procedures:
+        print_procedures(condition_path, args.csv_format, "Procedure*.json")
 
     if args.medicines or args.medicines_all:
         include_inactive = False
