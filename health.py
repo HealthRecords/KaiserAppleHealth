@@ -1,4 +1,11 @@
-# writing min/max/avg function right now. Need to handle BP for this.
+"""
+This module provides a way to explore your health information.
+
+Design note: This is an exploration tool, not a product. As I don't have documentation for the file formats,
+I try to put assertions in, to verify my assumptions, like "A referenceRange only has one value". That's the only case
+I have seen, but there are probably millions of cases I have not seen, yet. It's better to hit an assertion and fix
+it, than to silently hide information.
+"""
 import glob
 import json
 import sys
@@ -15,7 +22,7 @@ from dataclasses import dataclass
 from collections import Counter
 
 
-# TODO There are two observations classes, in health.py and xml_reader.py. Should combine them.
+# TODO There are two observations classes, one in health.py and one in xml_reader.py. Should combine them.
 # TODO print_condition and print_medicines should be generalized and combined.
 # TODO Do we want to have an option to process multiple or all stats in one run?
 # TODO Should be able to graph anything with a value quantity and a date. This is only observations, at least
@@ -181,7 +188,7 @@ def get_value_quantity(val: dict, test_name) -> ValueQuantity:
     return vq
 
 def get_reference_range(rl: list) -> ReferenceRange:
-    assert 1 == len(rl)
+    assert 1 == len(rl) # I've never seen a refernef
     r = rl[0]
     # if len(r) != 3
     # assert 3 == len(r)
