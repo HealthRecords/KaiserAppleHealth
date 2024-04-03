@@ -46,7 +46,12 @@ class Observation:
 
 
 def find(stack: list[str], target: list[str]) -> bool:
-
+    """
+    A very limited XQuery. Just matches the last N tags in stack, where N is the length of target
+    :param stack:
+    :param target:
+    :return: bool
+    """
     if len(target) > len(stack):
         return False
     for x in range(1, len(target)+1):
@@ -131,7 +136,7 @@ def get_test_results():
             print(tag)
 
 
-def get_all_test_tytpes():
+def get_all_test_types():
     print("This may take a few minutes...")
     names, _ = find_display_names("export/apple_health_export/export_cda.xml", ["component", "observation", "code"])
     max_count_name = max(names, key=names.get)
@@ -147,10 +152,10 @@ def get_all_test_tytpes():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Investigate data from Apple Health export.\nNote that "
                                      "an export can be millions of records, so this can take a long time."
-                                     "When run with no arguments, it prints all tests and results.")
+                                     "When run with no arguments, it prints all tests and all results.")
     parser.add_argument("-l", "--list", action="store_true", help="List all observations. SLOW! (minutes)")
     args = parser.parse_args()
     if args.list:
-        get_all_test_tytpes()
+        get_all_test_types()
     else:
         get_test_results()
