@@ -85,3 +85,14 @@ If you want a more polished or supported alternative, you might want to look at
 ## Another Alternative
 I'm not using this yet, just keeping track of this toolkit for later. https://www.openmhealth.org/
 
+## Useful note:
+[jq](https://jqlang.github.io/jq/) can be useful for exploring the data. For example, the following finds
+unique values for referenceRange when only text, not high or low, is present. 
+This helps me determine what I have to parse. The "-c" puts the json found all
+on one line, so I can grep the result.
+
+```jq -c -r '.referenceRange' O*.json | grep -v null  | grep -v low ```
+
+All text in referenceRanges:
+
+```jq -c -r '.referenceRange[].text' O*.json   | grep -v error | sort | uniq```
