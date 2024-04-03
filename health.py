@@ -1,9 +1,11 @@
 # writing min/max/avg function right now. Need to handle BP for this.
 import glob
 import json
+import sys
 from io import StringIO
 from pathlib import Path
 from typing import NoReturn, Iterable, Optional
+import re
 import argparse
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
@@ -19,8 +21,11 @@ from collections import Counter
 # TODO Should be able to graph anything with a value quantity and a date. This is only observations, at least
 #      in my data. Need to handle string values for Observations
 # TODO Add sparklines to graph multiple items on one page. Probably HTML page.
-# TODO I think I currently read ALL Observation files, whether I want one or all of them.
-#       And when I need multiple stats, I read them multiple times. Optimize.
+# TODO When getting multiple stats, I reread ALL the observation files for each stat. Optimize
+# TODO I don't currently handle the difference between < and <= on reference ranges. And I'm assuming that <10, means
+#     zero to ten, not negative infinity to ten
+# TODO New format for valueQuantity, see ValueQuantity doc string
+# TODO Some data appears to be missing from my download (PSA).
 
 
 @dataclass
@@ -51,13 +56,23 @@ class ValueQuantity:
         "value" : 0.90,
         "system" : "http://unitsofmeasure.org",
         "unit" : "mg/dL"
-  },
+    },
+
+    Just found:
+    "valueQuantity" : {
+        "code" : "mL/min",
+        "value" : 60,
+        "comparator" : ">",
+        "system" : "http://unitsofmeasure.org",
+        "unit" : "mL/min"
+    },
     """
     value: float
     unit: str
     name: str
 
 
+reference_range_pattern = re.compile(r"[<=>]+")
 @dataclass
 class ReferenceRange:
     """
@@ -93,6 +108,8 @@ class ReferenceRange:
         [{"text":"NON REAC"}]
         [{"text":"NORMAL"}]
 
+        also      "text" : "6.0 - 7.7 g/dL"
+
     The "<" or "<=" could be parsed, and are the most common format. Odd, and annoying that they have something that
     could be expressed with "low" and "high", but aren't.
     """
@@ -106,7 +123,29 @@ class ReferenceRange:
         :return: low: float, high: float
         """
         if self.low is not None:
-            return self.low, self.high
+            assert self.low.value is not None
+            assert self.high is not None
+            assert self.high.value is not None
+            return self.low.value, self.high.value
+        if self.text is not None:
+            operators = reference_range_pattern.findall(self.text)
+            if not operators:
+                return None
+            assert len(operators) == 1
+            op = operators[0]
+            value = self.text[len(op):]
+            assert value
+            value = float(value)
+            # TODO what do I return for high for ">10", max int? max value on the graph? None?
+            # TODO: Just found: text: "6.0 - 7.7 g/dL
+            match op:
+                case "<" | "<=":
+                    return -sys.maxsize, value
+                case ">" | ">=":
+                    return value, sys.maxsize
+                case "=":
+                    return value, value
+
         return None  # TODO extract from text field, where possible.
 
 @dataclass
@@ -118,6 +157,7 @@ class Observation:
     date: str
     data: list[ValueQuantity]
     range: Optional[ReferenceRange] = None
+    filename: Path = None
 
 
 def convert_units(v, u):
@@ -132,15 +172,19 @@ def convert_units(v, u):
 
 def get_value_quantity(val: dict, test_name) -> ValueQuantity:
     v = val["value"]
-    u = val["unit"]
-    v, u = convert_units(v, u)
+    if 'unit' not in val:
+        u = "NoUnit"  # Ratios actually have no unit.
+    else:
+        u = val["unit"]
+        v, u = convert_units(v, u)
     vq = ValueQuantity(v, u, test_name)
     return vq
 
 def get_reference_range(rl: list) -> ReferenceRange:
     assert 1 == len(rl)
     r = rl[0]
-    assert 3 == len(r)
+    # if len(r) != 3
+    # assert 3 == len(r)
     if "low" in r:
         low = get_value_quantity(r["low"], "low")
         high = get_value_quantity(r["high"], "high")
@@ -173,16 +217,21 @@ def extract_value_helper(*, filename: str, condition: dict, stat_info) -> Option
         # It turns out that blood pressure, which has two values, like 144/100,
         # has a slightly different format. First find "component", then each has
         # its own "valueQuantity"
+        # TODO There is a get_value_quantity function that duplicates this with different errors. Combine!
         if "valueQuantity" in condition:
             v = condition["valueQuantity"]["value"]
-            u = condition["valueQuantity"]["unit"]
-            v, u = convert_units(v, u)
+            if "unit" not in condition["valueQuantity"]:
+                print("Debug: no units in valueQuantity. ", filename)
+                u = "NoUnit."
+            else:
+                u = condition["valueQuantity"]["unit"]
+                v, u = convert_units(v, u)
             vq = ValueQuantity(v, u, sign_name)
             if "referenceRange" in condition:
                 rr = get_reference_range(condition["referenceRange"])
             else:
                 rr = None
-            return Observation(t, d, [vq], rr)
+            return Observation(t, d, [vq], rr, filename)
 
         elif "component" in condition:
             sub_values = []
@@ -198,7 +247,7 @@ def extract_value_helper(*, filename: str, condition: dict, stat_info) -> Option
             return Observation(t, d, sub_values)
         elif "valueString" in condition:
             val = condition["valueString"]
-            print(F"Found a string value of {val}")
+            print(F"We don't handle 'valueString' yet: value is '{val}'")
             return None
         else:
             print(F"*** No value found in {filename} ***")
